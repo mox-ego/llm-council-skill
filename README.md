@@ -1,58 +1,46 @@
-# LLM Council — A Claude Code Skill
+# LLM Council — Moe's Fork
 
-Stop trusting Claude's first answer. Run any decision through 5 AI advisors who argue, peer-review each other anonymously, and hand you a verdict you can actually trust.
+Fork of [tenfoldmarc/llm-council-skill](https://github.com/tenfoldmarc/llm-council-skill), customized for my Claude Space setup.
 
-Based on [Andrej Karpathy's LLM Council](https://x.com/karpathy/status/1962263486196867115) methodology, adapted to run entirely inside Claude Code using sub-agents with different thinking styles.
+Based on [Andrej Karpathy's LLM Council](https://x.com/karpathy/status/1962263486196867115) methodology — five advisors debate, peer-review each other anonymously, and a Chairman synthesizes a verdict.
 
 ---
 
-## The Problem
+## What diverges from upstream
 
-Claude is incredibly agreeable. Ask it "should I launch this product?" and it'll find 5 reasons why you should. Ask "is this product a bad idea?" and it'll find 5 reasons why it is. Same product, different framing, opposite answers.
+1. **Hard isolation from personal context.**
+   Advisors never read `CLAUDE.md`, `memory/`, `Obsidian Space/`, `hot.md`, or any personal preference files. They reason from a de-personalized brief describing *role + decision + stakes*, not *person + preferences + history*. Upstream scans the workspace and leaks personal context into the framing — this fork explicitly forbids that.
 
-That's fine for writing emails. It's dangerous for making decisions.
+2. **Output routing, not CWD dumps.**
+   Outputs land inside a project's `_transient/` folder when the council runs during an engagement; inside the area's `_transient/_council/` when no engagement is active; and inside `Dashboards and Reports/Council/` as a cross-cutting fallback. Never at CWD, never in the skill folder, never in the vault.
 
-## How It Works
+3. **No automatic decision-log promotion.**
+   The Chairman's verdict is a recommendation, not a committed decision. The skill NEVER writes to `Obsidian Space/05_Decisions/`. If I want to commit to a recommendation, I fire `"Decision: X"` manually afterward — that's the firewall.
 
-When you say **"council this"**, the skill:
+4. **Cross-domain by design.**
+   Upstream README leans marketing/business examples. This fork's examples and framing explicitly cover SMC governance, Health, Family, Business Startup, and Personality Hacking decisions. The 5 personas are generic cognitive lenses, not business-specific.
 
-1. **Scans your workspace** for relevant context (CLAUDE.md, memory files, etc.)
-2. **Frames your question** into a neutral prompt
-3. **Spawns 5 advisors in parallel**, each with a different thinking style:
-   - **The Contrarian** — hunts for what will fail
-   - **The First Principles Thinker** — asks if you're solving the right problem
-   - **The Expansionist** — looks for upside you're missing
-   - **The Outsider** — responds with zero context (catches curse of knowledge)
-   - **The Executor** — only cares what you do Monday morning
-4. **Anonymizes their responses** and runs a peer review — advisors review each other without knowing who said what
-5. **Chairman synthesizes** the verdict: where the council agrees, where it clashes, blind spots it caught, a clear recommendation, and one concrete next step
-6. **Generates a visual HTML report** + full markdown transcript
-
-All in one session. About 4 minutes.
+5. **Run-folder structure.**
+   Each run produces `FRAME.md` + `council-report.html` + `council-transcript.md` inside `YYYY-MM-DD-HHMM-<slug>/`. `FRAME.md` is auditable — I can verify what the council actually saw.
 
 ---
 
 ## Install
 
-### Option 1 — Git clone (recommended)
+Clone this fork into the skills directory:
 
 ```bash
-git clone https://github.com/tenfoldmarc/llm-council-skill ~/.claude/skills/llm-council
+git clone https://github.com/mox-ego/llm-council-skill \
+  "C:/Users/moeal/Claude Space/.claude/skills/llm-council"
 ```
 
-Then open Claude Code (`claude` in Terminal).
-
-### Option 2 — Manual
-
-1. Create folder `~/.claude/skills/llm-council/`
-2. Drop `SKILL.md` inside it
-3. Restart Claude Code
+Claude Code auto-loads it.
 
 ---
 
 ## Use
 
-Type any of these triggers followed by your question:
+Any of these triggers followed by the decision:
 
 - `council this`
 - `run the council`
@@ -61,45 +49,38 @@ Type any of these triggers followed by your question:
 - `war room this`
 - `debate this`
 
+Also fires on decision-shaped strong triggers like `"should I X or Y"`, `"which option"`, `"validate this"` when combined with a real tradeoff.
+
 **Example:**
 
-> council this: I'm thinking of pivoting from a $297 course to a $97 live workshop for my audience of non-technical solopreneurs. Is that the right move?
+> council this: should I move EPMO training delivery fully in-house or keep the current vendor partnership for another cycle?
 
-Give it context. The richer the input, the sharper the output.
-
-You'll get:
-- A visual HTML report that opens automatically
-- A full markdown transcript saved alongside it
+Give it the options, the stakes, the timeline. The de-personalizing happens in Stage 1 — you can write the question naturally.
 
 ---
 
-## When To Use It
+## Output locations
 
-**Good council questions:**
-- "Should I launch a $97 workshop or a $497 course?"
-- "Which of these 3 positioning angles is strongest?"
-- "I'm thinking of pivoting from X to Y. Am I crazy?"
-- "Here's my landing page copy. What's weak?"
-- "Should I hire a VA or build an automation first?"
+| Where you are | Output lands in |
+|---|---|
+| Inside `<Area>/_transient/<engagement>/` | `<Area>/_transient/<engagement>/_council/YYYY-MM-DD-HHMM-<slug>/` |
+| Inside `<Area>/` (no engagement) | `<Area>/_transient/_council/YYYY-MM-DD-HHMM-<slug>/` |
+| Anywhere else | `Dashboards and Reports/Council/YYYY-MM-DD-HHMM-<slug>/` |
 
-**Skip the council for:**
-- Factual questions with one right answer
-- Pure creation tasks ("write me a tweet")
-- Summaries or processing tasks
-- Validation-seeking when you already know the answer
-
-The council tells you things you don't want to hear. That's the feature, not a bug.
+Engagement-scoped runs archive automatically with the engagement. `Dashboards and Reports/Council/` runs need manual triage (see `Dashboards and Reports/README.md`).
 
 ---
 
-## Credit
+## Adding / modifying personas
 
-- Methodology: [Andrej Karpathy's LLM Council](https://x.com/karpathy/status/1962263486196867115)
-- Adapted for Claude Code sub-agents by [@olelehmann](https://x.com/olelehmann)
-- Published as an installable skill by the community
+See the **Adding or modifying personas** section at the end of `SKILL.md`. Short version: edit SKILL.md in three spots (persona description, spawn count, anonymization labels), commit to the fork, test on a low-stakes question.
 
 ---
 
 ## License
 
-MIT — do whatever you want with it.
+MIT (inherited from upstream).
+
+---
+
+*Forked 2026-04-24 from [tenfoldmarc/llm-council-skill](https://github.com/tenfoldmarc/llm-council-skill).*

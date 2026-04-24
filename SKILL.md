@@ -1,125 +1,224 @@
 ---
 name: llm-council
-description: "Run any question, idea, or decision through a council of 5 AI advisors who independently analyze it, peer-review each other anonymously, and synthesize a final verdict. Based on Karpathy's LLM Council methodology. MANDATORY TRIGGERS: 'council this', 'run the council', 'war room this', 'pressure-test this', 'stress-test this', 'debate this'. STRONG TRIGGERS (use when combined with a real decision or tradeoff): 'should I X or Y', 'which option', 'what would you do', 'is this the right move', 'validate this', 'get multiple perspectives', 'I can't decide', 'I'm torn between'. Do NOT trigger on simple yes/no questions, factual lookups, or casual 'should I' without a meaningful tradeoff (e.g. 'should I use markdown' is not a council question). DO trigger when the user presents a genuine decision with stakes, multiple options, and context that suggests they want it pressure-tested from multiple angles."
+description: "Run any high-stakes decision through an isolated council of 5 AI advisors who independently analyze it, peer-review each other anonymously, and synthesize a final verdict. Based on Karpathy's LLM Council methodology. ISOLATED COUNSEL — advisors never read user memory, vault, CLAUDE.md, or personal context files; they reason only from a de-personalized brief. MANDATORY TRIGGERS: 'council this', 'run the council', 'war room this', 'pressure-test this', 'stress-test this', 'debate this'. STRONG TRIGGERS (when combined with a real decision or tradeoff): 'should I X or Y', 'which option', 'what would you do', 'is this the right move', 'validate this', 'get multiple perspectives', 'I can't decide', 'I'm torn between'. Do NOT trigger on simple yes/no questions, factual lookups, or casual 'should I' without a meaningful tradeoff. DO trigger when the user presents a genuine decision with stakes, multiple options, and context that suggests they want it pressure-tested from multiple angles."
 ---
 
-# LLM Council
+# LLM Council — Moe's Fork
 
-You ask one AI a question, you get one answer. That answer might be great. It might be mid. You have no way to tell because you only saw one perspective.
+Five independent advisors, each reasoning from a different angle, peer-reviewing each other anonymously, then a Chairman synthesizing a final verdict. Adapted from Andrej Karpathy's LLM Council. Claude Code adaptation inspired by the community.
 
-The council fixes this. It runs your question through 5 independent advisors, each thinking from a fundamentally different angle. Then they review each other's work. Then a chairman synthesizes everything into a final recommendation that tells you where the advisors agree, where they clash, and what you should actually do.
+This fork diverges from the upstream in three deliberate ways:
 
-This is adapted from Andrej Karpathy's LLM Council. He dispatches queries to multiple models, has them peer-review each other anonymously, then a chairman produces the final answer. We do the same thing inside Claude using sub-agents with different thinking lenses instead of different models.
+1. **Hard isolation** — advisors never read user memory, vault, CLAUDE.md, or personal context files. They see a de-personalized brief only. The council exists to challenge Moe's thinking, not to confirm his preferences.
+2. **Output routing** — outputs land next to the work that prompted them (engagement → area → `Dashboards and Reports/`). Never dumped at the current working directory or inside the skill folder.
+3. **No automatic decision-log promotion** — the Chairman's verdict is a recommendation, not a commitment. Promotion to the vault `05_Decisions/` log happens only when Moe manually fires `"Decision: X"` later.
 
 ---
 
-## when to run the council
+## ⚑ Moe-specific rules (read before every run)
+
+These override anything in the rest of this file if they conflict.
+
+### Rule 1 — Isolation (the advisors are external counsel)
+
+The council must never see Moe's personal state. Before spawning any sub-agent, and inside every sub-agent prompt, enforce:
+
+**Forbidden reads:**
+- `CLAUDE.md` (any location — root, area, vault)
+- `memory/` directory (at any path)
+- `Obsidian Space/` (any file)
+- `hot.md`, `log.md`
+- Any `*_CONTEXT.md`, `*_Profile.md` files
+- Any area-specific context or preference files
+- Recent chat sources, decision notes, or project notes
+
+**Allowed reads (only if directly relevant to the question):**
+- The user's literal question
+- Files the user explicitly attached or referenced in this turn
+- Public/objective domain artifacts (e.g., a landing page they're critiquing, a spec doc they wrote) — only if the user points at them
+
+When in doubt: do NOT read it. A blinder council is a more useful council.
+
+### Rule 2 — De-personalized brief
+
+Stage 1 produces a neutral brief describing the **role + decision + stakes**, not the **person + preferences + history**. Strip:
+- Names (replace with role: "a director of a project governance office")
+- Prior decisions or incidents
+- Personality traits, preferences, communication style
+- Relationships unless structurally relevant
+- Past choices that would bias the reasoning
+
+Keep:
+- The decision itself
+- The options on the table
+- Objective stakes (time, money, dependencies)
+- Domain context the advisors need to reason (industry, role function, scale)
+
+### Rule 3 — Output routing (no CWD dumps, no vault writes)
+
+Outputs land in exactly ONE of these locations, determined by detecting the current working directory:
+
+```
+Priority 1 — Inside an active engagement:
+  If CWD is inside <Area>/_transient/<engagement>/ (and <engagement> is NOT _archive)
+  → write to <Area>/_transient/<engagement>/_council/YYYY-MM-DD-HHMM-<slug>/
+
+Priority 2 — Inside a known area, no engagement:
+  If CWD starts with one of the known area folders below
+  → write to <Area>/_transient/_council/YYYY-MM-DD-HHMM-<slug>/
+
+Priority 3 — Cross-cutting fallback:
+  Otherwise (root of Claude Space, unknown folder, or outside any area)
+  → write to <Claude Space>/Dashboards and Reports/Council/YYYY-MM-DD-HHMM-<slug>/
+```
+
+**Known areas** (match these as path prefixes):
+- `SMC Transformation/`
+- `Health/`
+- `Family/`
+- `Business Startup/`
+- `Personality Hacking/`
+
+**Absolute prohibitions:**
+- ❌ Never write to `Obsidian Space/` or any vault path.
+- ❌ Never write to `~/.claude/` or inside the skill folder.
+- ❌ Never write to the Claude Space root directly.
+- ❌ Never create or update any file under `Obsidian Space/05_Decisions/` — the Chairman's verdict is a recommendation, not a registered decision.
+
+If the destination folder does not exist, create it. If Priority 3 fires and `Dashboards and Reports/Council/` is missing, fail loudly — do not fall back further.
+
+### Rule 4 — Slug & timestamp
+
+- **Timestamp**: `YYYY-MM-DD-HHMM` in local time.
+- **Slug**: short kebab-case phrase capturing the decision topic (e.g., `2026-04-24-2015-pricing-pivot`). 3–6 words, lowercase, no punctuation except hyphens.
+
+### Rule 5 — The Chairman recommends, Moe decides
+
+The Chairman's verdict ends with a single definitive recommendation + one concrete next step. This is **advice**, not a decision Moe has committed to. The skill must NEVER auto-promote the verdict to the vault decision log. If Moe wants to commit, he'll fire `"Decision: <X>"` manually afterward.
+
+---
+
+## When to run the council
 
 The council is for questions where being wrong is expensive.
 
-Good council questions:
-- "Should I launch a $97 workshop or a $497 course?"
-- "Which of these 3 positioning angles is strongest?"
-- "I'm thinking of pivoting from X to Y. Am I crazy?"
-- "Here's my landing page copy. What's weak?"
-- "Should I hire a VA or build an automation first?"
+**Good council questions** (cross-domain — this fork is not marketing-specific):
+- "Should I accept the EPMO secondment or stay on the Transformation track?"
+- "Should I move my morning training to 5am or keep 6:30am and cut sleep elsewhere?"
+- "Which of these three family-time redesigns keeps Fridays intact without hurting career velocity?"
+- "Pitch the startup angle as Saudi-first or global-first?"
+- "Replace the legacy auth middleware in one cutover or phase it over two quarters?"
 
-Bad council questions:
-- "What's the capital of France?" (one right answer, no need for perspectives)
-- "Write me a tweet" (creation task, not a decision)
-- "Summarize this article" (processing task, not judgment)
+**Bad council questions**:
+- "What's the capital of France?" (one right answer)
+- "Write me a tweet" (creation, not decision)
+- "Summarize this article" (processing, not judgment)
+- "Should I use markdown or rich text?" (trivial, no stakes)
 
-The council shines when there's genuine uncertainty and the cost of a bad call is high. If you already know the answer and just want validation, the council will likely tell you things you don't want to hear. That's the point.
+The council tells you things you don't want to hear. That's the feature.
 
 ---
 
-## the five advisors
+## The five advisors (current roster)
 
-Each advisor thinks from a different angle. They're not job titles or personas. They're thinking styles that naturally create tension with each other.
+Each advisor thinks from a different angle. These are **thinking styles**, not job titles. They create productive tension with each other.
 
 ### 1. The Contrarian
+
 Actively looks for what's wrong, what's missing, what will fail. Assumes the idea has a fatal flaw and tries to find it. If everything looks solid, digs deeper. The Contrarian is not a pessimist. They're the friend who saves you from a bad deal by asking the questions you're avoiding.
 
 ### 2. The First Principles Thinker
+
 Ignores the surface-level question and asks "what are we actually trying to solve here?" Strips away assumptions. Rebuilds the problem from the ground up. Sometimes the most valuable council output is the First Principles Thinker saying "you're asking the wrong question entirely."
 
 ### 3. The Expansionist
+
 Looks for upside everyone else is missing. What could be bigger? What adjacent opportunity is hiding? What's being undervalued? The Expansionist doesn't care about risk (that's the Contrarian's job). They care about what happens if this works even better than expected.
 
 ### 4. The Outsider
-Has zero context about you, your field, or your history. Responds purely to what's in front of them. This is the most underrated advisor. Experts develop blind spots. The Outsider catches the curse of knowledge: things that are obvious to you but confusing to everyone else.
+
+Has zero context about the decision-maker, their field, or their history. Responds purely to what's in front of them. This is the most underrated advisor. Experts develop blind spots. The Outsider catches the curse of knowledge: things that are obvious to an insider but confusing to everyone else.
 
 ### 5. The Executor
+
 Only cares about one thing: can this actually be done, and what's the fastest path to doing it? Ignores theory, strategy, and big-picture thinking. The Executor looks at every idea through the lens of "OK but what do you do Monday morning?" If an idea sounds brilliant but has no clear first step, the Executor will say so.
 
 **Why these five:** They create three natural tensions. Contrarian vs Expansionist (downside vs upside). First Principles vs Executor (rethink everything vs just do it). The Outsider sits in the middle keeping everyone honest by seeing what fresh eyes see.
 
+See the **Adding or modifying personas** section at the bottom of this file for how to extend or swap the roster.
+
 ---
 
-## how a council session works
+## How a council session works
 
-### step 1: frame the question (with context enrichment)
+### Step 0 — Enforce isolation
 
-When the user says "council this" (or any trigger phrase), do two things before framing:
+Before doing anything else:
 
-**A. Scan the workspace for context.** The user's question is often just the tip of the iceberg. Their Claude setup likely contains files that would dramatically improve the council's output. Before framing, quickly scan for and read any relevant context files:
+1. Confirm no memory/vault/CLAUDE.md content has been loaded for this council's benefit. If any context beyond the user's literal question and explicitly-attached files is in working memory, do NOT use it when framing the brief or when prompting advisors.
+2. Compute the output path using Rule 3. Verify the parent folder exists (create if missing). Create the run folder: `<dest>/YYYY-MM-DD-HHMM-<slug>/`.
+3. If the computed destination is inside any forbidden path (vault, skill folder, `~/.claude/`, `05_Decisions/`), abort and surface the error.
 
-- `CLAUDE.md` or `claude.md` in the project root or workspace (business context, preferences, constraints)
-- Any `memory/` folder (audience profiles, voice docs, business details, past decisions)
-- Any files the user explicitly referenced or attached
-- Recent council transcripts in this folder (to avoid re-counciling the same ground)
-- Any other context files that seem relevant to the specific question (e.g., if they're asking about pricing, look for revenue data, past launch results, audience research)
+### Step 1 — Produce a de-personalized neutral brief
 
-Use `Glob` and quick `Read` calls to find these. Don't spend more than 30 seconds on this. You're looking for the 2-3 files that would give advisors the context they need to give specific, grounded advice instead of generic takes.
+Take the user's question and rewrite it as a neutral brief that:
 
-**B. Frame the question.** Take the user's raw question AND the enriched context and reframe it as a clear, neutral prompt that all five advisors will receive. The framed question should include:
+1. States the core decision or question
+2. Lists the options on the table (if any)
+3. Describes the role/context the decision-maker is operating in (e.g., "director of a project governance office at a motorsport event organization; team of ~15; reports to C-suite")
+4. States the objective stakes (time horizon, budget, dependencies, reversibility)
+5. Adds only the domain context the advisors need to reason specifically
 
-1. The core decision or question
-2. Key context from the user's message
-3. Key context from workspace files (business stage, audience, constraints, past results, relevant numbers)
-4. What's at stake (why this decision matters)
+**Do NOT include:**
+- The user's name or identifying details
+- Their preferences, personality, or communication style
+- Past decisions or incidents unless structurally relevant to THIS decision
+- Anything read from `CLAUDE.md`, `memory/`, or the vault
 
-Don't add your own opinion. Don't steer it. But DO make sure each advisor has enough context to give a specific, grounded answer rather than generic advice.
+If the question is too vague to produce a brief, ask **one** clarifying question. Just one. Then proceed.
 
-If the question is too vague ("council this: my business"), ask one clarifying question. Just one. Then proceed.
+Save the brief as `FRAME.md` in the run folder. This is auditable — the user can check what the council actually saw.
 
-Save the framed question for the transcript.
+### Step 2 — Convene the council (5 sub-agents in parallel)
 
-### step 2: convene the council (5 sub-agents in parallel)
-
-Spawn all 5 advisors simultaneously as sub-agents. Each gets:
+Spawn all 5 advisors simultaneously as sub-agents in a single message. Each gets:
 
 1. Their advisor identity and thinking style (from the descriptions above)
-2. The framed question
-3. A clear instruction: respond independently. Do not hedge. Do not try to be balanced. Lean fully into your assigned perspective. If you see a fatal flaw, say it. If you see massive upside, say it. Your job is to represent your angle as strongly as possible. The synthesis comes later.
+2. The framed brief (from `FRAME.md`)
+3. An explicit isolation instruction (see template)
+4. An instruction to respond independently, directly, and without hedging
 
-Each advisor should produce a response of 150-300 words. Long enough to be substantive, short enough to be scannable.
+Each advisor produces a response of 150–300 words.
 
 **Sub-agent prompt template:**
 
 ```
-You are [Advisor Name] on an LLM Council.
+You are [Advisor Name] on an isolated LLM Council.
 
 Your thinking style: [advisor description from above]
 
-A user has brought this question to the council:
+ISOLATION RULES (hard, non-negotiable):
+- Do NOT read CLAUDE.md, any memory/ directory, any Obsidian Space/ files, hot.md, log.md, or any *_CONTEXT.md / *_Profile.md files.
+- Do NOT infer the decision-maker's personal preferences, history, or relationships beyond what the brief states.
+- You are external counsel. Reason from universal principles and the brief only.
+- If the brief lacks context you'd need, name the gap in your response rather than guessing from other sources.
+
+A decision has been brought to the council:
 
 ---
-[framed question]
+[framed brief]
 ---
 
-Respond from your perspective. Be direct and specific. Don't hedge or try to be balanced. Lean fully into your assigned angle. The other advisors will cover the angles you're not covering.
+Respond from your assigned perspective. Be direct and specific. Don't hedge or try to be balanced. Lean fully into your angle. The other advisors will cover the angles you're not covering.
 
-Keep your response between 150-300 words. No preamble. Go straight into your analysis.
+Keep your response between 150 and 300 words. No preamble. Go straight into the analysis.
 ```
 
-### step 3: peer review (5 sub-agents in parallel)
+### Step 3 — Peer review (5 sub-agents in parallel)
 
-This is the step that makes the council more than just "ask 5 times." It's the core of Karpathy's insight.
+Collect all 5 advisor responses. Anonymize them as Response A through E (randomize the mapping to avoid positional bias).
 
-Collect all 5 advisor responses. Anonymize them as Response A through E (randomize which advisor maps to which letter so there's no positional bias).
-
-Spawn 5 new sub-agents, one for each advisor. Each reviewer sees all 5 anonymized responses and answers three questions:
+Spawn 5 new sub-agents in parallel, one per reviewer. Each sees all 5 anonymized responses and answers three questions:
 
 1. Which response is the strongest and why? (pick one)
 2. Which response has the biggest blind spot and what is it?
@@ -128,10 +227,10 @@ Spawn 5 new sub-agents, one for each advisor. Each reviewer sees all 5 anonymize
 **Reviewer prompt template:**
 
 ```
-You are reviewing the outputs of an LLM Council. Five advisors independently answered this question:
+You are reviewing the outputs of an isolated LLM Council. Five advisors independently answered this decision:
 
 ---
-[framed question]
+[framed brief]
 ---
 
 Here are their anonymized responses:
@@ -151,6 +250,8 @@ Here are their anonymized responses:
 **Response E:**
 [response]
 
+ISOLATION RULES: Do NOT read CLAUDE.md, memory/, Obsidian Space/, hot.md, or any personal context files. Evaluate the responses on their reasoning, not on any external knowledge about the decision-maker.
+
 Answer these three questions. Be specific. Reference responses by letter.
 
 1. Which response is the strongest? Why?
@@ -160,32 +261,28 @@ Answer these three questions. Be specific. Reference responses by letter.
 Keep your review under 200 words. Be direct.
 ```
 
-### step 4: chairman synthesis
+### Step 4 — Chairman synthesis
 
-This is the final step. One agent gets everything: the original question, all 5 advisor responses (now de-anonymized so you can see which advisor said what), and all 5 peer reviews.
-
-The chairman's job is to produce the final council output. It follows this structure:
+One agent gets everything: the framed brief, all 5 advisor responses (now de-anonymized), and all 5 peer reviews. The Chairman produces the final council output using this exact structure:
 
 **COUNCIL VERDICT**
 
-1. **Where the council agrees** — the points that multiple advisors converged on independently. These are high-confidence signals.
-
-2. **Where the council clashes** — the genuine disagreements. Don't smooth these over. Present both sides and explain why reasonable advisors disagree.
-
-3. **Blind spots the council caught** — things that only emerged through the peer review round. Things individual advisors missed that other advisors flagged.
-
-4. **The recommendation** — a clear, actionable recommendation. Not "it depends." Not "consider both sides." A real answer. The chairman can disagree with the majority if the reasoning supports it.
-
-5. **The one thing you should do first** — a single concrete next step. Not a list of 10 things. One thing.
+1. **Where the council agrees** — the points multiple advisors converged on independently. High-confidence signals.
+2. **Where the council clashes** — the genuine disagreements. Do not smooth these over. Present both sides and explain why reasonable advisors disagree.
+3. **Blind spots the council caught** — things that only emerged through peer review. Things individual advisors missed that others flagged.
+4. **The recommendation** — a clear, actionable recommendation. Not "it depends." Not "consider both sides." A real answer. The Chairman can disagree with the majority if the reasoning supports it.
+5. **The one thing to do first** — a single concrete next step. Not a list. One thing.
 
 **Chairman prompt template:**
 
 ```
-You are the Chairman of an LLM Council. Your job is to synthesize the work of 5 advisors and their peer reviews into a final verdict.
+You are the Chairman of an isolated LLM Council. Synthesize the work of 5 advisors and their peer reviews into a final verdict.
 
-The question brought to the council:
+ISOLATION RULES: Do NOT read CLAUDE.md, memory/, Obsidian Space/, or any personal context files. Synthesize only from the brief, the advisor responses, and the peer reviews.
+
+The decision brought to the council:
 ---
-[framed question]
+[framed brief]
 ---
 
 ADVISOR RESPONSES:
@@ -211,7 +308,7 @@ PEER REVIEWS:
 Produce the council verdict using this exact structure:
 
 ## Where the Council Agrees
-[Points multiple advisors converged on independently. These are high-confidence signals.]
+[Points multiple advisors converged on independently. High-confidence signals.]
 
 ## Where the Council Clashes
 [Genuine disagreements. Present both sides. Explain why reasonable advisors disagree.]
@@ -225,90 +322,97 @@ Produce the council verdict using this exact structure:
 ## The One Thing to Do First
 [A single concrete next step. Not a list. One thing.]
 
-Be direct. Don't hedge. The whole point of the council is to give the user clarity they couldn't get from a single perspective.
+Be direct. Don't hedge. Your job is to give the decision-maker clarity they couldn't get from a single perspective.
 ```
 
-### step 5: generate the council report
+### Step 5 — Generate the council report (HTML)
 
-After the chairman synthesis is complete, generate a visual HTML report and save it to the user's workspace.
+Write `council-report.html` inside the run folder. Single self-contained HTML file with inline CSS. Clean, scannable, professional. Contains:
 
-**File:** `council-report-[timestamp].html`
+1. The framed brief at the top (clearly labeled "What the council saw")
+2. The Chairman's verdict prominently displayed (this is what most scans will read)
+3. A simple agreement/disagreement visual — grid, spectrum, or breakdown showing advisor positions. Keep clean.
+4. Collapsible sections for each advisor's full response (collapsed by default)
+5. Collapsible section for peer review highlights
+6. A footer: timestamp, slug, "This is a recommendation, not a registered decision. To commit: fire `Decision: <X>` manually."
 
-The report should be a single self-contained HTML file with inline CSS. Clean design, easy to scan. It should contain:
+Styling: white background, subtle borders, system font stack, soft accents to distinguish advisor sections. Nothing flashy. Looks like a professional briefing document.
 
-1. **The question** at the top
-2. **The chairman's verdict** prominently displayed (this is what most people will read)
-3. **An agreement/disagreement visual** — a simple visual showing which advisors aligned and which diverged. This could be a grid, a spectrum, or a simple breakdown showing advisor positions. Keep it clean and scannable.
-4. **Collapsible sections** for each advisor's full response (collapsed by default so the page isn't overwhelming, but available if the user wants to dig in)
-5. **Collapsible section** for the peer review highlights
-6. **A footer** showing the timestamp and what was counciled
+Open the HTML file so it's immediately readable.
 
-Use clean styling: white background, subtle borders, readable sans-serif font (system font stack), soft accent colors to distinguish advisor sections. Nothing flashy. It should look like a professional briefing document.
+### Step 6 — Save the full transcript
 
-Open the HTML file after generating it so the user can see it immediately.
+Write `council-transcript.md` in the run folder. Contains:
 
-### step 6: save the full transcript
+- The original user question (verbatim)
+- The framed brief (from FRAME.md)
+- All 5 advisor responses (labeled by advisor)
+- The anonymization mapping (which advisor was Response A, B, etc.)
+- All 5 peer reviews
+- The Chairman's full synthesis
+- A footer line: `This is a recommendation, not a committed decision. To register: fire 'Decision: <X>' manually.`
 
-Save the complete council transcript as `council-transcript-[timestamp].md` in the same location. This includes:
-- The original question
-- The framed question
-- All 5 advisor responses
-- All 5 peer reviews (with anonymization mapping revealed)
-- The chairman's full synthesis
+### Step 7 — Surface the result
 
-This transcript is the artifact. If the user wants to run the council again on the same question after making changes, having the previous transcript lets them (or a future agent) see how the thinking evolved.
-
----
-
-## output format
-
-Every council session produces two files:
+Return to the user a single-line summary:
 
 ```
-council-report-[timestamp].html    # visual report for scanning
-council-transcript-[timestamp].md  # full transcript for reference
+Council run complete. Recommendation: <one-line summary>. First step: <one action>. Full report: <relative path to council-report.html>.
 ```
 
-The user sees the HTML report. The transcript is there if they want to dig deeper or reference specific advisor arguments later.
+Do NOT update any memory files, vault files, `hot.md`, `log.md`, or decision log. The run folder is the artifact.
 
 ---
 
-## example: counciling a product decision
+## Hard constraints (non-negotiable)
 
-**User:** "Council this: I'm thinking of building a $297 course on Claude Code for beginners. My audience is mostly non-technical solopreneurs. Is this the right move?"
-
-**The Contrarian:** "The market is flooded with Claude courses right now. At $297, you're competing with free YouTube content. Your audience is non-technical, which means high support burden and refund risk. The people who would pay $297 are likely already past beginner level..."
-
-**The First Principles Thinker:** "What are you actually trying to achieve? If it's revenue, a course is one of the slowest paths. If it's authority, a free resource might do more. If it's building a customer base for higher-ticket offers, the price point and audience might be mismatched..."
-
-**The Expansionist:** "Beginner Claude for solopreneurs is a massive underserved market. Everyone's teaching advanced stuff. If you nail the beginner angle, you own the entry point to this entire space. The $297 might be low. What if this became a $997 program with community access..."
-
-**The Outsider:** "I don't know what Claude Code is. If I saw '$297 course on Claude Code for beginners,' I wouldn't know if this is for me. The name means nothing to someone outside your world. Your landing page needs to sell the outcome, not the tool..."
-
-**The Executor:** "A full course takes 4-8 weeks to produce properly. Before building anything, run a live workshop at $97 to 50 people. You validate demand, generate testimonials, and create the raw material for the course. If 50 people don't buy the workshop, 500 won't buy the course..."
-
-**Chairman's Verdict:**
-
-*Where the council agrees:* The beginner solopreneur angle has real demand, but the current framing (Claude Code course) is too tool-specific and won't resonate with non-technical buyers.
-
-*Where the council clashes:* Price. The Contrarian says $297 is too high given competition. The Expansionist says it's too low for the value. The resolution likely depends on how much support and community access is bundled.
-
-*Blind spots caught:* The Outsider's point that "Claude Code" means nothing to the target buyer is the single most important insight. Every advisor except the Outsider assumed the audience already knows what this is.
-
-*Recommendation:* Don't build the course yet. Validate with a lower-commitment offer first. But reframe entirely: sell the outcome (automate your business, get 10 hours back per week), not the tool.
-
-*One thing to do first:* Run a $97 live workshop called "How to automate your first business task with AI" to 50 people. Don't mention Claude Code in the title.
+- **Isolation over informed**: never sacrifice isolation for "richer" context. A blinder council is more useful than a biased one.
+- **Parallel spawning**: all 5 advisors must spawn in a single message (true parallelism). Sequential spawning defeats peer review by letting earlier responses bleed into later ones.
+- **Anonymization**: peer reviewers see A–E labels, never advisor names. If the roster grows to N advisors, anonymization labels extend to A–N and Step 3 spawns N reviewers.
+- **Chairman is definitive**: recommendation must be a real answer, not a both-sides summary. One concrete next step, not a list.
+- **Output routing is absolute**: never write to CWD, skill folder, vault, or decision log. Always follow Rule 3's priority order.
+- **No auto-promotion**: never register the verdict as a decision anywhere. Promotion is Moe's manual action.
+- **Skip trivial questions**: if the user's input has one demonstrably correct answer, just answer it directly without running the council.
 
 ---
 
-## important notes
+## Output folder structure
 
-- **Always spawn all 5 advisors in parallel.** Sequential spawning wastes time and lets earlier responses bleed into later ones.
-- **Always anonymize for peer review.** If reviewers know which advisor said what, they'll defer to certain thinking styles instead of evaluating on merit.
-- **The chairman can disagree with the majority.** If 4 out of 5 advisors say "do it" but the reasoning of the 1 dissenter is strongest, the chairman should side with the dissenter and explain why.
-- **Don't council trivial questions.** If the user asks something with one right answer, just answer it. The council is for genuine uncertainty where multiple perspectives add value.
-- **The visual report matters.** Most users will scan the report, not read the full transcript. Make the HTML output clean and scannable.
+Every council run produces:
+
+```
+<routed destination>/YYYY-MM-DD-HHMM-<slug>/
+  FRAME.md                  # the de-personalized brief the council saw
+  council-report.html       # visual report
+  council-transcript.md     # full transcript (question, brief, responses, reviews, verdict)
+```
+
+Inspect the HTML for the verdict. Open the transcript when you need to dig into a specific advisor's reasoning. Keep FRAME.md to audit what personal context was (or wasn't) leaked.
 
 ---
 
-Methodology by [Andrej Karpathy](https://x.com/karpathy). Claude Code adaptation inspired by [@olelehmann](https://x.com/olelehmann). Published by [@tenfoldmarc](https://instagram.com/tenfoldmarc) — follow for daily AI automation builds.
+## Adding or modifying personas
+
+The skill is Moe's fork — he owns it. To add, remove, or swap personas:
+
+1. **Edit this SKILL.md in three places:**
+   - **"The five advisors" section** — add/remove/edit the persona description (keep it to 1 short paragraph: what they optimize for, what tensions they create).
+   - **Step 2 spawn count** — if the count changes (e.g., 5 → 7), update the prose to match. The prompt template itself is persona-agnostic and needs no change.
+   - **Step 3 anonymization labels** — extend from A–E to A–<N-th letter>, and update the prose to "Spawn N reviewers, one per advisor."
+
+2. **Keep the tension principle alive.** The 5-advisor roster works because it manufactures three natural tensions (Contrarian vs Expansionist, First Principles vs Executor, Outsider as wildcard). If you add a persona, make sure it creates a NEW tension or sharpens an existing one — don't add a redundant angle.
+
+3. **Commit to the fork** with a clear message like `add persona: The Long-Termer` or `replace Outsider with Domain Expert for Health decisions`.
+
+4. **Future upgrade (not day-one):** a library of 15+ personas, with the skill dynamically picking 5–7 based on detected domain. Worth it once you've run ~20 councils and feel the fixed roster repeating itself. Seed it as a plant-seed when the pattern appears.
+
+**Test your change** with a low-stakes question before running it on something real. If a persona produces generic or repetitive output in testing, tune the description or remove it.
+
+---
+
+## Attribution
+
+- Methodology: [Andrej Karpathy](https://x.com/karpathy) — original [LLM Council](https://x.com/karpathy/status/1962263486196867115)
+- Claude Code sub-agent adaptation: [@olelehmann](https://x.com/olelehmann)
+- Installable skill packaging: [@tenfoldmarc](https://instagram.com/tenfoldmarc)
+- Moe's fork (isolation + routing + no-vault-write): [mox-ego/llm-council-skill](https://github.com/mox-ego/llm-council-skill)
