@@ -1,6 +1,6 @@
 ---
 name: llm-council
-description: "Run any high-stakes decision through an isolated council of 5 AI advisors who independently analyze it, peer-review each other anonymously, and synthesize a final verdict. Based on Karpathy's LLM Council methodology. ISOLATED COUNSEL — advisors never read user memory, vault, CLAUDE.md, or personal context files; they reason only from a de-personalized brief. MANDATORY TRIGGERS: 'council this', 'run the council', 'war room this', 'pressure-test this', 'stress-test this', 'debate this'. STRONG TRIGGERS (when combined with a real decision or tradeoff): 'should I X or Y', 'which option', 'what would you do', 'is this the right move', 'validate this', 'get multiple perspectives', 'I can't decide', 'I'm torn between'. Do NOT trigger on simple yes/no questions, factual lookups, or casual 'should I' without a meaningful tradeoff. DO trigger when the user presents a genuine decision with stakes, multiple options, and context that suggests they want it pressure-tested from multiple angles."
+description: "Run any high-stakes decision through an isolated council of 5 AI advisors who independently analyze it, peer-review each other anonymously, and synthesize a final verdict. Based on Karpathy's LLM Council methodology. ISOLATED COUNSEL — advisors never read user memory, vault, CLAUDE.md, or personal context files; they reason only from a de-personalized brief. STANDARD TRIGGERS: 'council this', 'run the council', 'war room this', 'pressure-test this', 'stress-test this', 'debate this'. CRITICAL MODE TRIGGER (extended-analysis pass with 8 extra agents — risk asymmetry, reversibility ladder, info gap registry, time decay, pre-mortem, trip-wires, counterfactual, stakeholder impact): 'critical council this', 'deep council this'. STYLE OVERRIDE — append a template hint like 'in bento style', 'as scoreboard', 'in terminal', 'as comic'; the skill reads `Dashboards and Reports/Council/_templates/manifest.json` to map the hint to a template file. STRONG TRIGGERS (when combined with a real decision or tradeoff): 'should I X or Y', 'which option', 'what would you do', 'is this the right move', 'validate this', 'get multiple perspectives', 'I can't decide', 'I'm torn between'. Do NOT trigger on simple yes/no questions, factual lookups, or casual 'should I' without a meaningful tradeoff."
 ---
 
 # LLM Council — Moe's Fork
@@ -419,7 +419,12 @@ Every report contains (at minimum):
 6. Collapsible advisor responses + peer review
 7. Footer: timestamp, slug, recommendation-not-decision disclaimer
 
-**For `extended-analysis` mode, additionally render** all the slots in the chosen template's `extended_analysis_sections` (manifest field). Each slot consumes one extended-agent's output. Do not invent content for these slots — only render what the agents produced.
+**For `extended-analysis` mode, additionally render** all the slots in the chosen template's `extended_analysis_sections` (manifest field). Each slot is sourced one of two ways:
+
+- **Agent-produced** (8 slots): `risk_asymmetry`, `reversibility_ladder`, `info_gap_registry`, `time_decay_curve`, `pre_mortem`, `trip_wires`, `counterfactual`, `stakeholder_impact` → render the corresponding agent's verbatim output.
+- **Derived from standard pipeline** (4 slots): `kpi_strip` (computed: confidence = peer-review unanimity, vote split = camp tally, regret asymmetry = compare risk_asymmetry magnitudes, reversibility cost = top of reversibility_ladder, etc.), `agree_clash` (extracted from Chairman's verdict sections), `council_positions` (each advisor's stance + lens, already known from Stage 2), `decision_journal` (template stub + recommendation + confidence; final review fields stay blank for the user to fill at outcome review).
+
+Do not invent content. Each slot maps to a known data source.
 
 Open the HTML file so it's immediately readable.
 
