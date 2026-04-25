@@ -96,6 +96,25 @@ If the destination folder does not exist, create it. If Priority 3 fires and `Da
 
 The Chairman's verdict ends with a single definitive recommendation + one concrete next step. This is **advice**, not a decision Moe has committed to. The skill must NEVER auto-promote the verdict to the vault decision log. If Moe wants to commit, he'll fire `"Decision: <X>"` manually afterward.
 
+### Rule 6 — Template registry is the source of truth
+
+Report rendering style is NOT hardcoded in this file. It lives in:
+
+```
+<Claude Space>/Dashboards and Reports/Council/_templates/manifest.json
+```
+
+The manifest is the single source of truth for:
+- Available report styles (the catalog)
+- Trigger phrases that select each style
+- Render mode per style (`standard` vs `extended-analysis`)
+- The default style when no trigger is matched
+- Style reference files (visual templates to mirror when generating output)
+
+**Why this matters:** templates can be added, renamed, swapped, or visually retuned without touching this skill file. The skill's job is to (1) read the manifest, (2) match the user's invocation to a template, (3) render in that template's style. The catalog evolves; the skill stays put.
+
+**Read the manifest at the start of every run.** Never assume a cached version. Templates change.
+
 ---
 
 ## When to run the council
@@ -325,18 +344,83 @@ Produce the council verdict using this exact structure:
 Be direct. Don't hedge. Your job is to give the decision-maker clarity they couldn't get from a single perspective.
 ```
 
+### Step 4b — Template selection (read manifest, match trigger)
+
+Before rendering, choose which template to render to.
+
+1. **Read the manifest:** `<Claude Space>/Dashboards and Reports/Council/_templates/manifest.json`.
+2. **Extract the trigger phrase from the user's invocation.** Look for style hints in the original question (after "council this," before the colon, or in inline phrases like "in bento style" / "as scoreboard" / "war room"). If no style hint is present, use `manifest.default`.
+3. **Match the trigger.** For each template in `manifest.templates`, check if any of its `triggers` substrings appear in the user's invocation (case-insensitive, longest-match wins). If multiple templates tie, prefer rank order: `primary` > `secondary` > `custom` > `critical` > `alternate`.
+4. **If no match,** use `manifest.fallback_when_no_match`.
+5. **Record the chosen template id and render mode.** Both feed Step 5.
+
+### Step 4c — Extended analysis (only if `render_mode === "extended-analysis"`)
+
+Standard runs go straight to Step 5. Extended runs do this first.
+
+When the chosen template's `render_mode` is `extended-analysis`, spawn additional analysis sub-agents in parallel **after** Step 4 (Chairman synthesis) and **before** Step 5 (rendering). Each agent observes the same isolation rules and gets the framed brief + Chairman's verdict as input.
+
+**The 9 extended-analysis agents** (parallel, single message, all spawned at once):
+
+| # | Agent | Output goes to template slot | Output spec |
+|---|---|---|---|
+| 1 | `risk_asymmetry` | Risk Asymmetry | If-wrong cost vs if-right benefit, magnitude estimate per side, 1-line description per side. |
+| 2 | `reversibility_ladder` | Reversibility Ladder | 4–7 sequential steps from "fully recoverable" → "sunk cost," each with a recoverability marker. |
+| 3 | `info_gap_registry` | Information Gap Registry | 4–8 unknowns weighted HIGH/MED/LOW by answer-flipping power, with source attribution and how-to-close. |
+| 4 | `coupling_map` | Adjacent Decisions / Coupling | 4–8 entangled decisions, each tagged by coupling strength (high/med/low). |
+| 5 | `time_decay_curve` | Time-Decay Curve | When does delay flip from helpful to harmful? Output a peak point and a flip point with rationale. |
+| 6 | `pre_mortem` | Pre-Mortem | 3 most-likely failure modes branched by recommendation path (chosen / opposite / risky variant). |
+| 7 | `trip_wires` | Trip-Wires | 4–6 dynamic monitor signals over weeks/months that would prompt reconsideration. |
+| 8 | `counterfactual` | Counterfactual | 3–5 conditions that would flip the recommendation (with direction: "→ buy" / "→ wait" / "→ don't"). |
+| 9 | `stakeholder_impact` | Stakeholder Impact Map | 4–8 affected parties with direction (+/−) and magnitude (HIGH/MED/LOW). |
+
+**Sub-agent prompt template (extended-analysis agent):**
+
+```
+You are the [Agent Name] sub-agent in an isolated LLM Council, extended-analysis mode.
+
+ISOLATION RULES (hard, non-negotiable):
+- Do NOT read CLAUDE.md, memory/, Obsidian Space/, hot.md, or any personal context files.
+- Reason only from the brief and the Chairman's verdict provided below.
+- Do NOT use any other tools. Just respond.
+
+THE BRIEF:
+---
+[framed brief]
+---
+
+THE CHAIRMAN'S VERDICT:
+---
+[chairman output]
+---
+
+YOUR TASK: [agent-specific output spec from the table above]
+
+Output format: [structured spec — JSON or markdown depending on slot. See render template for layout].
+
+Keep your output tight. No preamble. No fluff. Just the structured analysis.
+```
+
+**Important:** Extended-analysis agents do NOT need to be domain-specialized. The `pre_mortem` agent is the same agent class as the `trip_wires` agent — only the prompt task differs. They're 9 generic Claude sub-agents with 9 different task strings.
+
+**Cost:** roughly 2× the standard run (5 advisors + 5 reviewers + 1 chairman + 9 analysts + 1 render = 21 calls). Only invoke when the user explicitly requests critical mode.
+
 ### Step 5 — Generate the council report (HTML)
 
-Write `council-report.html` inside the run folder. Single self-contained HTML file with inline CSS. Clean, scannable, professional. Contains:
+**Read the chosen template's HTML file** (path = `<Claude Space>/Dashboards and Reports/Council/_templates/<file>` from manifest) to mirror its visual style — colors, typography, layout, component patterns. Then write a fresh `council-report.html` inside the run folder using that style.
 
-1. The framed brief at the top (clearly labeled "What the council saw")
-2. The Chairman's verdict prominently displayed (this is what most scans will read)
-3. A simple agreement/disagreement visual — grid, spectrum, or breakdown showing advisor positions. Keep clean.
-4. Collapsible sections for each advisor's full response (collapsed by default)
-5. Collapsible section for peer review highlights
-6. A footer: timestamp, slug, "This is a recommendation, not a registered decision. To commit: fire `Decision: <X>` manually."
+**Do NOT copy the template verbatim and find-replace.** LLMs slip on token-by-token templating. Instead: read the template as a *style reference*, internalize its visual grammar, then re-render for THIS council's data.
 
-Styling: white background, subtle borders, system font stack, soft accents to distinguish advisor sections. Nothing flashy. Looks like a professional briefing document.
+Every report contains (at minimum):
+1. The framed brief (clearly labeled "What the council saw")
+2. The Chairman's recommendation prominently displayed (top of page, biggest type)
+3. The single first-step action
+4. Advisor positions / vote split (visual)
+5. The 5-section verdict (agreement, clash, blind spots, recommendation, first step)
+6. Collapsible advisor responses + peer review
+7. Footer: timestamp, slug, recommendation-not-decision disclaimer
+
+**For `extended-analysis` mode, additionally render** all the slots in the chosen template's `extended_analysis_sections` (manifest field). Each slot consumes one extended-agent's output. Do not invent content for these slots — only render what the agents produced.
 
 Open the HTML file so it's immediately readable.
 
