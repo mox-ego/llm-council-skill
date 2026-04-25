@@ -360,19 +360,18 @@ Standard runs go straight to Step 5. Extended runs do this first.
 
 When the chosen template's `render_mode` is `extended-analysis`, spawn additional analysis sub-agents in parallel **after** Step 4 (Chairman synthesis) and **before** Step 5 (rendering). Each agent observes the same isolation rules and gets the framed brief + Chairman's verdict as input.
 
-**The 9 extended-analysis agents** (parallel, single message, all spawned at once):
+**The 8 extended-analysis agents** (parallel, single message, all spawned at once):
 
 | # | Agent | Output goes to template slot | Output spec |
 |---|---|---|---|
 | 1 | `risk_asymmetry` | Risk Asymmetry | If-wrong cost vs if-right benefit, magnitude estimate per side, 1-line description per side. |
 | 2 | `reversibility_ladder` | Reversibility Ladder | 4–7 sequential steps from "fully recoverable" → "sunk cost," each with a recoverability marker. |
 | 3 | `info_gap_registry` | Information Gap Registry | 4–8 unknowns weighted HIGH/MED/LOW by answer-flipping power, with source attribution and how-to-close. |
-| 4 | `coupling_map` | Adjacent Decisions / Coupling | 4–8 entangled decisions, each tagged by coupling strength (high/med/low). |
-| 5 | `time_decay_curve` | Time-Decay Curve | When does delay flip from helpful to harmful? Output a peak point and a flip point with rationale. |
-| 6 | `pre_mortem` | Pre-Mortem | 3 most-likely failure modes branched by recommendation path (chosen / opposite / risky variant). |
-| 7 | `trip_wires` | Trip-Wires | 4–6 dynamic monitor signals over weeks/months that would prompt reconsideration. |
-| 8 | `counterfactual` | Counterfactual | 3–5 conditions that would flip the recommendation (with direction: "→ buy" / "→ wait" / "→ don't"). |
-| 9 | `stakeholder_impact` | Stakeholder Impact Map | 4–8 affected parties with direction (+/−) and magnitude (HIGH/MED/LOW). |
+| 4 | `time_decay_curve` | Time-Decay Curve | When does delay flip from helpful to harmful? Output a peak point and a flip point with rationale. |
+| 5 | `pre_mortem` | Pre-Mortem | 3 most-likely failure modes branched by recommendation path (chosen / opposite / risky variant). |
+| 6 | `trip_wires` | Trip-Wires | 4–6 dynamic monitor signals over weeks/months that would prompt reconsideration. |
+| 7 | `counterfactual` | Counterfactual | 3–5 conditions that would flip the recommendation (with direction: "→ buy" / "→ wait" / "→ don't"). |
+| 8 | `stakeholder_impact` | Stakeholder Impact Map | 4–8 affected parties with direction (+/−) and magnitude (HIGH/MED/LOW). |
 
 **Sub-agent prompt template (extended-analysis agent):**
 
@@ -403,7 +402,7 @@ Keep your output tight. No preamble. No fluff. Just the structured analysis.
 
 **Important:** Extended-analysis agents do NOT need to be domain-specialized. The `pre_mortem` agent is the same agent class as the `trip_wires` agent — only the prompt task differs. They're 9 generic Claude sub-agents with 9 different task strings.
 
-**Cost:** roughly 2× the standard run (5 advisors + 5 reviewers + 1 chairman + 9 analysts + 1 render = 21 calls). Only invoke when the user explicitly requests critical mode.
+**Cost:** roughly 2× the standard run (5 advisors + 5 reviewers + 1 chairman + 8 analysts + 1 render = 20 calls). Only invoke when the user explicitly requests critical mode.
 
 ### Step 5 — Generate the council report (HTML)
 
