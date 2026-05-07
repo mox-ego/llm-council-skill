@@ -12,7 +12,7 @@ Based on [Andrej Karpathy's LLM Council](https://x.com/karpathy/status/196226348
    Advisors never read `CLAUDE.md`, `memory/`, `Obsidian Space/`, `hot.md`, or any personal preference files. They reason from a de-personalized brief describing *role + decision + stakes*, not *person + preferences + history*. Upstream scans the workspace and leaks personal context into the framing — this fork explicitly forbids that.
 
 2. **Output routing, not CWD dumps.**
-   Outputs land inside a project's `_transient/` folder when the council runs during an engagement; inside the area's `_transient/_council/` when no engagement is active; and inside `Dashboards and Reports/Council/` as a cross-cutting fallback. Never at CWD, never in the skill folder, never in the vault.
+   Outputs land inside a project's `_transient/<engagement>/_council/` when the council runs during an engagement; inside the area's `_area-council/` (surface-level utility folder, durable) when no engagement is active; and inside `Dashboards and Reports/Council/` as a cross-cutting fallback. Never at CWD, never in the skill folder, never in the vault.
 
 3. **No automatic decision-log promotion.**
    The Chairman's verdict is a recommendation, not a committed decision. The skill NEVER writes to `Obsidian Space/05_Decisions/`. If I want to commit to a recommendation, I fire `"Decision: X"` manually afterward — that's the firewall.
@@ -21,7 +21,7 @@ Based on [Andrej Karpathy's LLM Council](https://x.com/karpathy/status/196226348
    Upstream README leans marketing/business examples. This fork's examples and framing explicitly cover SMC governance, Health, Family, Business Startup, and Personality Hacking decisions. The 5 personas are generic cognitive lenses, not business-specific.
 
 5. **Run-folder structure.**
-   Each run produces `FRAME.md` + `council-report.html` + `council-transcript.md` inside `YYYY-MM-DD-HHMM-<slug>/`. `FRAME.md` is auditable — I can verify what the council actually saw.
+   Each run produces `CONTEXT.md` + `FRAME.md` + `council-report.html` + `council-transcript.md` inside `YYYY-MM-DD-HHMM-<slug>/`. `CONTEXT.md` captures my raw inputs verbatim (what I gave); `FRAME.md` captures the depersonalized brief (what the council saw). Both auditable — the diff between them is the isolation guarantee.
 
 ---
 
@@ -64,10 +64,10 @@ Give it the options, the stakes, the timeline. The de-personalizing happens in S
 | Where you are | Output lands in |
 |---|---|
 | Inside `<Area>/_transient/<engagement>/` | `<Area>/_transient/<engagement>/_council/YYYY-MM-DD-HHMM-<slug>/` |
-| Inside `<Area>/` (no engagement) | `<Area>/_transient/_council/YYYY-MM-DD-HHMM-<slug>/` |
+| Inside `<Area>/` (no engagement) | `<Area>/_area-council/YYYY-MM-DD-HHMM-<slug>/` |
 | Anywhere else | `Dashboards and Reports/Council/YYYY-MM-DD-HHMM-<slug>/` |
 
-Engagement-scoped runs archive automatically with the engagement. `Dashboards and Reports/Council/` runs need manual triage (see `Dashboards and Reports/README.md`).
+Engagement-scoped runs archive automatically with the engagement (Ritual 2c sweeps them when the engagement closes). Area-council runs are durable surface artifacts — they live at the area surface alongside `Mandate/`, `Strategy/`, etc. and don't archive automatically. `Dashboards and Reports/Council/` runs need manual triage.
 
 ---
 

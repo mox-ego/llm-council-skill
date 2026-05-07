@@ -65,7 +65,7 @@ Priority 1 — Inside an active engagement:
 
 Priority 2 — Inside a known area, no engagement:
   If CWD starts with one of the known area folders below
-  → write to <Area>/_transient/_council/YYYY-MM-DD-HHMM-<slug>/
+  → write to <Area>/_area-council/YYYY-MM-DD-HHMM-<slug>/
 
 Priority 3 — Cross-cutting fallback:
   Otherwise (root of Claude Space, unknown folder, or outside any area)
@@ -170,13 +170,36 @@ See the **Adding or modifying personas** section at the bottom of this file for 
 
 ## How a council session works
 
-### Step 0 — Enforce isolation
+### Step 0 — Enforce isolation, route, capture
 
 Before doing anything else:
 
 1. Confirm no memory/vault/CLAUDE.md content has been loaded for this council's benefit. If any context beyond the user's literal question and explicitly-attached files is in working memory, do NOT use it when framing the brief or when prompting advisors.
 2. Compute the output path using Rule 3. Verify the parent folder exists (create if missing). Create the run folder: `<dest>/YYYY-MM-DD-HHMM-<slug>/`.
 3. If the computed destination is inside any forbidden path (vault, skill folder, `~/.claude/`, `05_Decisions/`), abort and surface the error.
+4. **Write `CONTEXT.md` first** — capture the user's raw inputs verbatim before any anonymization. This is the **paired sibling of `FRAME.md`**: CONTEXT preserves what the user actually said and attached; FRAME records what the council saw after stripping. Both live in the run folder so the user can return later and reconstruct exactly what was on the table. Use this template:
+
+   ```markdown
+   # Context — what the user gave the council
+
+   > Captured before de-personalization. The council never reads this file.
+
+   ## Raw question
+   <verbatim — paste the user's question exactly as they wrote it>
+
+   ## Attached files
+   <list every file the user explicitly attached or pointed at, with its path.
+    Copy small text inputs inline. For larger inputs, link to the file in the run folder.>
+
+   ## Why now / stakes
+   <verbatim if the user stated stakes; otherwise "Not stated">
+
+   ## Anything else passed in
+   <any other raw context the user supplied — links, screenshots, prior turns
+    they pointed at. Verbatim.>
+   ```
+
+   If a section has nothing, write `*Not provided.*` — never invent content. The council still reads only `FRAME.md`; CONTEXT.md is for the user's own future reference.
 
 ### Step 1 — Produce a de-personalized neutral brief
 
@@ -196,7 +219,7 @@ Take the user's question and rewrite it as a neutral brief that:
 
 If the question is too vague to produce a brief, ask **one** clarifying question. Just one. Then proceed.
 
-Save the brief as `FRAME.md` in the run folder. This is auditable — the user can check what the council actually saw.
+Save the brief as `FRAME.md` in the run folder, alongside the `CONTEXT.md` written in Step 0.4. Both are auditable: `CONTEXT.md` shows what the user gave; `FRAME.md` shows what the council saw after stripping. The diff between them is the isolation guarantee.
 
 ### Step 2 — Convene the council (5 sub-agents in parallel)
 
@@ -470,12 +493,13 @@ Every council run produces:
 
 ```
 <routed destination>/YYYY-MM-DD-HHMM-<slug>/
+  CONTEXT.md                # the user's raw inputs (verbatim, pre-anonymization)
   FRAME.md                  # the de-personalized brief the council saw
   council-report.html       # visual report
   council-transcript.md     # full transcript (question, brief, responses, reviews, verdict)
 ```
 
-Inspect the HTML for the verdict. Open the transcript when you need to dig into a specific advisor's reasoning. Keep FRAME.md to audit what personal context was (or wasn't) leaked.
+`CONTEXT.md` and `FRAME.md` are paired siblings. CONTEXT preserves what the user actually said + attached; FRAME records what the council saw after stripping. The user can return to the folder months later and reconstruct exactly what was on the table. Inspect the HTML for the verdict. Open the transcript when you need to dig into a specific advisor's reasoning.
 
 ---
 
