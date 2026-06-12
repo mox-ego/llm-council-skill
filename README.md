@@ -71,9 +71,23 @@ Engagement-scoped runs archive automatically with the engagement (Ritual 2c swee
 
 ---
 
+## Repo layout (token discipline)
+
+`SKILL.md` carries only what every run needs; everything else is progressive-disclosure reference files read on demand:
+
+```
+SKILL.md                          # rules, roster, standard pipeline (loaded on every invocation)
+references/extended-analysis.md   # 8 critical-mode agents + render slots (read only in critical mode)
+references/extending.md           # when-to-run examples + persona editing guide (read only when editing)
+```
+
+The frontmatter `description` is deliberately the only thing loaded into every session — keep it triggers-first and short when editing.
+
+---
+
 ## Adding / modifying personas
 
-See the **Adding or modifying personas** section at the end of `SKILL.md`. Short version: edit SKILL.md in three spots (persona description, spawn count, anonymization labels), commit to the fork, test on a low-stakes question.
+See `references/extending.md`. Short version: edit SKILL.md in three spots (persona description, spawn count, anonymization labels), commit to the fork, test on a low-stakes question.
 
 ---
 
