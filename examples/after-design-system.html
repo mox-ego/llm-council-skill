@@ -7,171 +7,340 @@
 <style>
 :root {
   /* skin tokens (war-room template) */
-  --bg: #0e1116;
-  --surface: #161b23;
-  --surface-2: #1d2430;
-  --border: #2a3342;
-  --text: #e6ebf2;
-  --text-muted: #97a3b5;
+  --bg: #0a0d12;
+  --surface: #12161e;
+  --surface-2: #181e29;
+  --border: #232c3b;
+  --border-hi: #34405494;
+  --text: #e9edf4;
+  --text-muted: #93a0b4;
   --accent: #f5a623;
-  --accent-contrast: #0e1116;
+  --accent-soft: #f5a62318;
+  --accent-contrast: #0a0d12;
   /* advisor identity tokens (fixed across all templates) */
   --adv-contrarian: #e5484d;
-  --adv-first-principles: #8e4ec6;
+  --adv-first-principles: #9d5ed1;
   --adv-expansionist: #30a46c;
   --adv-outsider: #f5a623;
-  --adv-executor: #0091ff;
+  --adv-executor: #2da3ff;
   /* verdict semantics (fixed) */
   --sem-agree: #30a46c;
   --sem-clash: #f76808;
-  --sem-blindspot: #8e4ec6;
+  --sem-blindspot: #9d5ed1;
+  --mono: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
 }
 * { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
 body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  background: var(--bg); color: var(--text);
-  max-width: 880px; margin: 0 auto; padding: 36px 20px; line-height: 1.6; font-size: 15.5px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  background:
+    radial-gradient(1100px 500px at 75% -8%, #f5a62314, transparent 60%),
+    radial-gradient(900px 600px at -10% 30%, #2da3ff0d, transparent 55%),
+    radial-gradient(800px 500px at 110% 85%, #9d5ed10a, transparent 55%),
+    var(--bg);
+  color: var(--text);
+  margin: 0; padding: 0; line-height: 1.65; font-size: 15.5px;
+  -webkit-font-smoothing: antialiased;
 }
-.mono { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
-.kicker { font-size: 12px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-muted); }
-.runmeta { font-size: 12.5px; color: var(--text-muted); margin-top: 4px; }
+/* tactical grid overlay */
+body::before {
+  content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+  background:
+    repeating-linear-gradient(0deg, transparent 0 47px, #ffffff05 47px 48px),
+    repeating-linear-gradient(90deg, transparent 0 47px, #ffffff05 47px 48px);
+  mask-image: radial-gradient(1200px 800px at 50% 0%, #000 30%, transparent 80%);
+  -webkit-mask-image: radial-gradient(1200px 800px at 50% 0%, #000 30%, transparent 80%);
+}
+.wrap { position: relative; z-index: 1; max-width: 960px; margin: 0 auto; padding: 0 22px 40px; }
+.mono { font-family: var(--mono); }
+
+/* ── command bar ────────────────────────────── */
+.cmdbar {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px;
+  padding: 18px 0 14px; border-bottom: 1px solid var(--border);
+  font-family: var(--mono); font-size: 12px; letter-spacing: 1.5px;
+}
+.cmdbar .flag { color: var(--accent); font-weight: 700; font-size: 13px; }
+.cmdbar .title { font-weight: 700; color: var(--text); }
+.cmdbar .sep { color: var(--border-hi); }
+.cmdbar .meta { color: var(--text-muted); letter-spacing: 0.8px; }
+.cmdbar .tpl {
+  margin-left: auto; padding: 3px 10px; border: 1px solid var(--accent);
+  border-radius: 4px; color: var(--accent); font-weight: 700; font-size: 11px;
+  background: var(--accent-soft); box-shadow: 0 0 14px #f5a62322;
+}
 
 /* ── verdict hero ───────────────────────────── */
-.hero {
-  margin-top: 20px; background: linear-gradient(135deg, var(--surface) 0%, var(--surface-2) 100%);
-  border: 1px solid var(--border); border-left: 5px solid var(--accent);
-  border-radius: 12px; padding: 26px 28px;
+.hero { padding: 44px 0 8px; }
+.eyebrow {
+  display: flex; align-items: center; gap: 14px;
+  font-family: var(--mono); font-size: 11.5px; letter-spacing: 3px; color: var(--text-muted);
 }
-.hero h1 { font-size: clamp(26px, 4vw, 38px); line-height: 1.2; margin: 8px 0 0; font-weight: 750; }
+.eyebrow::before { content: ""; width: 34px; height: 2px; background: var(--accent); box-shadow: 0 0 10px var(--accent); }
 .chip {
-  display: inline-block; font-size: 11px; letter-spacing: 1.2px; font-weight: 700;
-  padding: 3px 10px; border-radius: 999px; vertical-align: middle;
-  background: var(--sem-agree); color: #06130c;
+  display: inline-flex; align-items: center; gap: 7px;
+  font-family: var(--mono); font-size: 11px; letter-spacing: 1.5px; font-weight: 700;
+  padding: 4px 12px; border-radius: 999px;
+  color: var(--sem-agree); border: 1px solid #30a46c66; background: #30a46c14;
+}
+.chip::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--sem-agree); box-shadow: 0 0 8px var(--sem-agree); }
+.hero h1 {
+  font-size: clamp(34px, 5.6vw, 56px); line-height: 1.08; letter-spacing: -0.02em;
+  margin: 18px 0 0; font-weight: 800; max-width: 21ch;
+}
+.hero h1 .hot {
+  background: linear-gradient(92deg, var(--accent), #ffd47e);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
 }
 .firststep {
-  margin-top: 18px; display: flex; gap: 14px; align-items: baseline;
-  background: var(--bg); border: 1px dashed var(--accent); border-radius: 8px; padding: 12px 16px;
+  margin-top: 28px; display: flex; gap: 16px; align-items: center; flex-wrap: wrap;
+  background: linear-gradient(90deg, var(--accent-soft), transparent 70%);
+  border: 1px solid #f5a62345; border-left: 4px solid var(--accent);
+  border-radius: 10px; padding: 15px 20px;
+  box-shadow: 0 0 30px #f5a62311, inset 0 1px 0 #ffffff0a;
 }
-.firststep .label { color: var(--accent); font-size: 11px; letter-spacing: 1.5px; font-weight: 700; white-space: nowrap; }
+.firststep .label {
+  font-family: var(--mono); color: var(--accent-contrast); background: var(--accent);
+  font-size: 11px; letter-spacing: 2px; font-weight: 800; white-space: nowrap;
+  padding: 4px 10px; border-radius: 5px; box-shadow: 0 0 16px #f5a62355;
+}
+.firststep .act { font-size: 16.5px; font-weight: 600; }
 
 /* ── KPI strip ──────────────────────────────── */
-.kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 14px; }
-.kpi { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; }
-.kpi .k { font-size: 10.5px; letter-spacing: 1.2px; text-transform: uppercase; color: var(--text-muted); }
-.kpi .v { font-size: 21px; font-weight: 750; margin-top: 2px; }
-.kpi .s { font-size: 12px; color: var(--text-muted); }
+.kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 30px; }
+.kpi {
+  position: relative; overflow: hidden;
+  background: linear-gradient(180deg, var(--surface-2), var(--surface));
+  border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px 14px;
+  box-shadow: 0 10px 24px #00000040, inset 0 1px 0 #ffffff08;
+}
+.kpi::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: var(--k, var(--accent)); box-shadow: 0 0 12px var(--k, var(--accent)); }
+.kpi .k { font-family: var(--mono); font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--text-muted); }
+.kpi .v { font-family: var(--mono); font-size: clamp(22px, 2.6vw, 30px); font-weight: 800; margin-top: 6px; color: var(--k, var(--text)); text-shadow: 0 0 24px color-mix(in srgb, var(--k, var(--accent)) 45%, transparent); }
+.kpi .s { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+
+/* ── sections ───────────────────────────────── */
+section { margin-top: 52px; }
+h2 {
+  display: flex; align-items: center; gap: 12px;
+  font-size: 13px; font-family: var(--mono); letter-spacing: 3px; text-transform: uppercase;
+  color: var(--text-muted); margin: 0 0 18px; font-weight: 700;
+}
+h2::after { content: ""; flex: 1; height: 1px; background: linear-gradient(90deg, var(--border), transparent); }
+h2 .n { color: var(--accent); }
 
 /* ── vote split ─────────────────────────────── */
-section { margin-top: 34px; }
-h2 { font-size: 19px; margin: 0 0 12px; }
-.votebar { display: flex; height: 26px; border-radius: 8px; overflow: hidden; border: 1px solid var(--border); }
-.votebar div { flex: 1; }
-.legend { display: flex; flex-wrap: wrap; gap: 14px 22px; margin-top: 10px; font-size: 13px; color: var(--text-muted); }
-.dot { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+.votewrap { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 20px 22px; box-shadow: 0 10px 24px #00000040; }
+.votebar { display: flex; height: 42px; border-radius: 9px; overflow: hidden; gap: 3px; }
+.votebar .seg { position: relative; }
+.votebar .seg::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, #ffffff2e, transparent 45%); }
+.seg.dissent { background-image: repeating-linear-gradient(135deg, transparent 0 6px, #0a0d1266 6px 12px) !important; outline: 1px dashed #ffffff55; outline-offset: -4px; }
+.votetags { display: flex; justify-content: space-between; margin-top: 12px; font-family: var(--mono); font-size: 12px; letter-spacing: 1.5px; }
+.votetags .phase { color: var(--text); font-weight: 700; }
+.votetags .cut { color: var(--text-muted); }
+.legend { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.legend span {
+  display: inline-flex; align-items: center; gap: 7px; font-size: 12.5px; color: var(--text-muted);
+  border: 1px solid var(--border); border-radius: 999px; padding: 3px 12px 3px 8px; background: var(--bg);
+}
+.dot { width: 10px; height: 10px; border-radius: 3px; box-shadow: 0 0 8px color-mix(in srgb, currentColor 60%, transparent); }
 
 /* ── positions grid ─────────────────────────── */
-.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; }
-.card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; border-top: 3px solid var(--c); }
-.card .name { font-weight: 700; font-size: 14.5px; }
-.card .lens { font-size: 12.5px; color: var(--text-muted); margin: 2px 0 8px; }
-.card .stance { font-size: 13.5px; }
-.card .stance b { color: var(--c); }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(255px, 1fr)); gap: 12px; }
+.card {
+  position: relative; background: linear-gradient(180deg, var(--surface-2), var(--surface));
+  border: 1px solid var(--border); border-radius: 14px; padding: 16px 18px;
+  box-shadow: 0 10px 24px #00000040, inset 0 1px 0 #ffffff08;
+  transition: transform .15s ease, border-color .15s ease;
+}
+.card:hover { transform: translateY(-2px); border-color: color-mix(in srgb, var(--c) 50%, var(--border)); }
+.card::before { content: ""; position: absolute; top: 0; left: 18px; right: 18px; height: 2px; background: var(--c); box-shadow: 0 0 14px var(--c); border-radius: 2px; }
+.card .head { display: flex; align-items: center; gap: 11px; }
+.card .ava {
+  width: 36px; height: 36px; border-radius: 10px; flex: none;
+  display: grid; place-items: center; font-family: var(--mono); font-weight: 800; font-size: 14px;
+  color: var(--c); background: color-mix(in srgb, var(--c) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--c) 45%, transparent);
+  text-shadow: 0 0 12px var(--c);
+}
+.card .name { font-weight: 750; font-size: 15px; line-height: 1.25; }
+.card .lens { font-family: var(--mono); font-size: 10.5px; letter-spacing: 1px; text-transform: uppercase; color: var(--text-muted); margin-top: 2px; }
+.card .stance { font-size: 13.5px; margin-top: 12px; color: var(--text-muted); }
+.card .stance b { color: var(--c); font-size: 14px; }
+.ribbon {
+  position: absolute; top: 12px; right: 12px;
+  font-family: var(--mono); font-size: 9.5px; letter-spacing: 1.5px; font-weight: 800;
+  color: var(--bg); background: var(--c); padding: 2px 8px; border-radius: 4px;
+  box-shadow: 0 0 14px color-mix(in srgb, var(--c) 60%, transparent);
+}
 
 /* ── verdict sections ───────────────────────── */
-.vsec { background: var(--surface); border: 1px solid var(--border); border-left: 5px solid var(--c); border-radius: 10px; padding: 16px 20px; margin-top: 12px; }
-.vsec h3 { margin: 0 0 6px; font-size: 15px; color: var(--c); letter-spacing: 0.3px; }
-.vsec p { margin: 0; font-size: 14.5px; }
+.vsec {
+  position: relative; overflow: hidden;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--c) 7%, var(--surface)), var(--surface) 55%);
+  border: 1px solid color-mix(in srgb, var(--c) 28%, var(--border));
+  border-radius: 14px; padding: 20px 24px 20px 26px; margin-top: 14px;
+  box-shadow: 0 10px 24px #00000040;
+}
+.vsec::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--c); box-shadow: 0 0 18px var(--c); }
+.vsec .ghost {
+  position: absolute; right: 14px; top: -14px; font-family: var(--mono); font-weight: 800;
+  font-size: 84px; line-height: 1; color: color-mix(in srgb, var(--c) 11%, transparent); user-select: none;
+}
+.vsec h3 { margin: 0 0 8px; font-family: var(--mono); font-size: 12px; letter-spacing: 2.5px; color: var(--c); }
+.vsec p { margin: 0; font-size: 14.5px; max-width: 72ch; }
 
-/* ── brief panel ────────────────────────────── */
-.brief { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; color: var(--text-muted); font-size: 14px; }
+/* ── brief / dossier ────────────────────────── */
+.brief {
+  background: var(--surface); border: 1px dashed var(--border-hi); border-radius: 14px;
+  padding: 18px 22px; color: var(--text-muted); font-size: 14px; max-width: 76ch;
+}
+.brief .tag { font-family: var(--mono); font-size: 10.5px; letter-spacing: 2px; color: var(--accent); display: block; margin-bottom: 8px; }
 
 /* ── transcript ─────────────────────────────── */
-details { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px 18px; margin-top: 10px; }
-summary { cursor: pointer; font-weight: 650; font-size: 14.5px; list-style: none; display: flex; align-items: center; gap: 10px; }
-summary::before { content: ""; width: 10px; height: 10px; border-radius: 3px; background: var(--c, var(--text-muted)); flex: none; }
-summary::after { content: "+"; margin-left: auto; color: var(--text-muted); }
-details[open] summary::after { content: "–"; }
-details p { font-size: 14px; color: var(--text); }
+details {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+  padding: 0; margin-top: 10px; overflow: hidden; transition: border-color .15s ease;
+}
+details:hover { border-color: var(--border-hi); }
+details[open] { border-color: color-mix(in srgb, var(--c, var(--accent)) 40%, var(--border)); }
+summary {
+  cursor: pointer; font-weight: 650; font-size: 14.5px; list-style: none;
+  display: flex; align-items: center; gap: 12px; padding: 14px 18px;
+}
+summary::-webkit-details-marker { display: none; }
+summary .chipdot { width: 11px; height: 11px; border-radius: 3px; background: var(--c, var(--text-muted)); box-shadow: 0 0 10px var(--c, transparent); flex: none; }
+summary .wc { margin-left: auto; font-family: var(--mono); font-size: 10.5px; letter-spacing: 1px; color: var(--text-muted); }
+summary .tog { font-family: var(--mono); color: var(--text-muted); margin-left: 14px; }
+details[open] summary .tog { color: var(--c, var(--accent)); }
+details .body { padding: 2px 20px 16px 41px; font-size: 14px; color: var(--text); border-top: 1px solid var(--border); }
+details .body p { margin-top: 12px; }
 
-footer { margin-top: 44px; padding-top: 14px; border-top: 1px solid var(--border); color: var(--text-muted); font-size: 12px; }
+/* ── footer ─────────────────────────────────── */
+footer {
+  margin-top: 56px; border: 1px solid var(--border); border-radius: 12px;
+  background: var(--surface); padding: 16px 20px;
+  font-family: var(--mono); font-size: 12px; color: var(--text-muted); line-height: 1.9;
+}
+footer .prompt { color: var(--accent); }
+footer .cmd { color: var(--text); }
 
-@media (max-width: 620px) { .kpis { grid-template-columns: repeat(2, 1fr); } .firststep { flex-direction: column; gap: 4px; } }
+@media (max-width: 680px) {
+  .kpis { grid-template-columns: repeat(2, 1fr); }
+  .firststep { align-items: flex-start; flex-direction: column; gap: 10px; }
+  .cmdbar .tpl { margin-left: 0; }
+  .vsec .ghost { font-size: 56px; }
+}
 @media print {
   body { background: #fff; color: #111; }
-  .hero, .kpi, .card, .vsec, .brief, details { background: #fff; border-color: #999; }
-  details { display: block; } details > *:not(summary) { display: block !important; }
+  body::before { display: none; }
+  .hero h1 .hot { color: #b97400; -webkit-text-fill-color: #b97400; }
+  .wrap > *, .kpi, .card, .vsec, .brief, details, footer, .votewrap { background: #fff !important; border-color: #999 !important; box-shadow: none !important; color: #111; }
+  .kpi .v, .vsec p, details .body, .card .stance, .brief, footer { color: #111 !important; }
+  details > .body { display: block !important; }
 }
 </style>
 </head>
 <body>
+<div class="wrap">
 
-<div class="kicker">⚑ Council Verdict — War Room</div>
-<div class="runmeta mono">2026-06-12-0930 · auth-middleware-cutover-vs-phased · template: war-room</div>
+<div class="cmdbar">
+  <span class="flag">⚑</span>
+  <span class="title">COUNCIL&nbsp;VERDICT</span>
+  <span class="sep">//</span>
+  <span class="meta">2026-06-12-0930</span>
+  <span class="sep">·</span>
+  <span class="meta">auth-middleware-cutover-vs-phased</span>
+  <span class="tpl">WAR ROOM</span>
+</div>
 
 <div class="hero">
-  <span class="kicker">The recommendation</span> <span class="chip">STRONG · 4/5</span>
-  <h1>Phase the migration — one quarter, behind a flag, with a hard sunset.</h1>
+  <div class="eyebrow">THE RECOMMENDATION &nbsp;<span class="chip">STRONG · 4/5</span></div>
+  <h1>Phase the migration — <span class="hot">one quarter, behind a flag,</span> with a hard sunset.</h1>
   <div class="firststep">
-    <span class="label mono">FIRST STEP →</span>
-    <span>This week, generate the complete inventory of auth-middleware call sites, ranked by traffic.</span>
+    <span class="label">FIRST STEP →</span>
+    <span class="act">This week, generate the complete inventory of auth-middleware call sites, ranked by traffic.</span>
   </div>
 </div>
 
 <div class="kpis">
-  <div class="kpi"><div class="k">Confidence</div><div class="v" style="color:var(--sem-agree)">STRONG</div><div class="s">4/5 reviewers aligned</div></div>
-  <div class="kpi"><div class="k">Vote split</div><div class="v">4 – 1</div><div class="s">phase vs cutover</div></div>
-  <div class="kpi"><div class="k">Regret asymmetry</div><div class="v" style="color:var(--sem-clash)">~6×</div><div class="s">cutover-wrong costs more</div></div>
-  <div class="kpi"><div class="k">Reversibility</div><div class="v">FULL</div><div class="s">until flag removal (wk 10)</div></div>
+  <div class="kpi" style="--k:var(--sem-agree)"><div class="k">Confidence</div><div class="v">STRONG</div><div class="s">4/5 reviewers aligned</div></div>
+  <div class="kpi" style="--k:var(--text)"><div class="k">Vote split</div><div class="v">4–1</div><div class="s">phase vs cutover</div></div>
+  <div class="kpi" style="--k:var(--sem-clash)"><div class="k">Regret asymmetry</div><div class="v">~6×</div><div class="s">cutover-wrong costs more</div></div>
+  <div class="kpi" style="--k:var(--adv-executor)"><div class="k">Reversibility</div><div class="v">FULL</div><div class="s">until flag removal · wk 10</div></div>
 </div>
 
 <section>
-  <h2>Vote split</h2>
-  <div class="votebar">
-    <div style="background:var(--adv-contrarian)"></div>
-    <div style="background:var(--adv-first-principles)"></div>
-    <div style="background:var(--adv-outsider)"></div>
-    <div style="background:var(--adv-executor)"></div>
-    <div style="background:var(--adv-expansionist); opacity:.45"></div>
-  </div>
-  <div class="legend">
-    <span><span class="dot" style="background:var(--adv-contrarian)"></span>Contrarian · phase</span>
-    <span><span class="dot" style="background:var(--adv-first-principles)"></span>First Principles · phase</span>
-    <span><span class="dot" style="background:var(--adv-outsider)"></span>Outsider · phase (compress)</span>
-    <span><span class="dot" style="background:var(--adv-executor)"></span>Executor · phase</span>
-    <span><span class="dot" style="background:var(--adv-expansionist); opacity:.45"></span>Expansionist · cutover (dissent)</span>
+  <h2><span class="n">01</span> Vote split</h2>
+  <div class="votewrap">
+    <div class="votebar">
+      <div class="seg" style="flex:1; background:var(--adv-contrarian)"></div>
+      <div class="seg" style="flex:1; background:var(--adv-first-principles)"></div>
+      <div class="seg" style="flex:1; background:var(--adv-outsider)"></div>
+      <div class="seg" style="flex:1; background:var(--adv-executor)"></div>
+      <div class="seg dissent" style="flex:1; background:var(--adv-expansionist)"></div>
+    </div>
+    <div class="votetags"><span class="phase">◤ PHASE — 4 ADVISORS</span><span class="cut">CUTOVER — 1 DISSENT ◢</span></div>
+    <div class="legend">
+      <span><span class="dot" style="background:var(--adv-contrarian); color:var(--adv-contrarian)"></span>Contrarian · phase</span>
+      <span><span class="dot" style="background:var(--adv-first-principles); color:var(--adv-first-principles)"></span>First Principles · phase</span>
+      <span><span class="dot" style="background:var(--adv-outsider); color:var(--adv-outsider)"></span>Outsider · phase, compressed</span>
+      <span><span class="dot" style="background:var(--adv-executor); color:var(--adv-executor)"></span>Executor · phase</span>
+      <span><span class="dot" style="background:var(--adv-expansionist); color:var(--adv-expansionist)"></span>Expansionist · cutover</span>
+    </div>
   </div>
 </section>
 
 <section>
-  <h2>Council positions</h2>
+  <h2><span class="n">02</span> Council positions</h2>
   <div class="grid">
-    <div class="card" style="--c:var(--adv-contrarian)"><div class="name">The Contrarian</div><div class="lens">What breaks, what's missing</div><div class="stance"><b>Phase.</b> Cutover's rollback story is the fatal flaw.</div></div>
-    <div class="card" style="--c:var(--adv-first-principles)"><div class="name">First Principles</div><div class="lens">What are we actually solving?</div><div class="stance"><b>Phase.</b> The real question is reversibility, not speed.</div></div>
-    <div class="card" style="--c:var(--adv-expansionist)"><div class="name">The Expansionist</div><div class="lens">The upside nobody priced</div><div class="stance"><b>Cutover.</b> Dual-running is an opportunity tax on the SSO roadmap.</div></div>
-    <div class="card" style="--c:var(--adv-outsider)"><div class="name">The Outsider</div><div class="lens">Fresh eyes, zero context</div><div class="stance"><b>Phase, compressed.</b> Two quarters reads like padding.</div></div>
-    <div class="card" style="--c:var(--adv-executor)"><div class="name">The Executor</div><div class="lens">What happens Monday morning</div><div class="stance"><b>Phase.</b> With a sunset date and a kill criterion.</div></div>
+    <div class="card" style="--c:var(--adv-contrarian)">
+      <div class="head"><div class="ava">C</div><div><div class="name">The Contrarian</div><div class="lens">What breaks · what's missing</div></div></div>
+      <div class="stance"><b>Phase.</b> Cutover's rollback story is the fatal flaw — a window guarantees a start time, not a finish time.</div>
+    </div>
+    <div class="card" style="--c:var(--adv-first-principles)">
+      <div class="head"><div class="ava">F</div><div><div class="name">First Principles</div><div class="lens">What are we actually solving?</div></div></div>
+      <div class="stance"><b>Phase.</b> The real variable is reversibility, not speed. The flag converts the decision into an undoable one.</div>
+    </div>
+    <div class="card" style="--c:var(--adv-expansionist)">
+      <span class="ribbon">DISSENT</span>
+      <div class="head"><div class="ava">E</div><div><div class="name">The Expansionist</div><div class="lens">The upside nobody priced</div></div></div>
+      <div class="stance"><b>Cutover.</b> Two quarters of dual-running is an opportunity tax on the SSO roadmap.</div>
+    </div>
+    <div class="card" style="--c:var(--adv-outsider)">
+      <div class="head"><div class="ava">O</div><div><div class="name">The Outsider</div><div class="lens">Fresh eyes · zero context</div></div></div>
+      <div class="stance"><b>Phase, compressed.</b> Two quarters reads like organizational padding, not engineering necessity.</div>
+    </div>
+    <div class="card" style="--c:var(--adv-executor)">
+      <div class="head"><div class="ava">X</div><div><div class="name">The Executor</div><div class="lens">What happens Monday morning</div></div></div>
+      <div class="stance"><b>Phase.</b> With a written sunset date and a kill criterion — phased, but with teeth.</div>
+    </div>
   </div>
 </section>
 
 <section>
-  <h2>The verdict</h2>
+  <h2><span class="n">03</span> The verdict</h2>
   <div class="vsec" style="--c:var(--sem-agree)">
+    <div class="ghost">01</div>
     <h3>WHERE THE COUNCIL AGREES</h3>
     <p>A big-bang cutover with no practiced rollback path is the largest risk on the table — four of five advisors rejected Option A as framed. The routing-flag infrastructure required to phase is an asset in itself, not overhead.</p>
   </div>
   <div class="vsec" style="--c:var(--sem-clash)">
+    <div class="ghost">02</div>
     <h3>WHERE THE COUNCIL CLASHES</h3>
     <p>Speed. The Expansionist prices two quarters of dual-running as a delayed SSO roadmap; the Outsider questions whether a middleware swap needs two quarters at all; the Contrarian and Executor accept the longer timeline as the cost of safety. The clash resolved into the compressed-quarter compromise.</p>
   </div>
   <div class="vsec" style="--c:var(--sem-blindspot)">
+    <div class="ghost">03</div>
     <h3>BLIND SPOTS THE COUNCIL CAUGHT</h3>
     <p>No advisor initially priced the 9-month support deadline against the two-quarter plan — subtract freeze periods and holidays and the slack is far thinner than it looks. Surfaced only in peer review; it drove the compression and the sunset date.</p>
   </div>
 </section>
 
 <section>
-  <h2>What the council saw</h2>
+  <h2><span class="n">04</span> What the council saw</h2>
   <div class="brief">
+    <span class="tag">FRAME.md — DE-PERSONALIZED BRIEF</span>
     An engineering lead at a mid-size SaaS company (~40 engineers) must replace a legacy authentication
     middleware. Option A: single cutover during a scheduled maintenance window next month. Option B:
     phased migration over two quarters behind a routing flag. Auth touches every request; an outage is
@@ -181,48 +350,50 @@ footer { margin-top: 44px; padding-top: 14px; border-top: 1px solid var(--border
 </section>
 
 <section>
-  <h2>Transcript</h2>
-  <details style="--c:var(--adv-contrarian)"><summary>The Contrarian — full response</summary>
-    <p>The fatal flaw in Option A is not the migration — it's the recovery. A maintenance window guarantees
+  <h2><span class="n">05</span> Transcript</h2>
+  <details style="--c:var(--adv-contrarian)"><summary><span class="chipdot"></span>The Contrarian — full response<span class="wc">96 WORDS</span><span class="tog">[+]</span></summary>
+    <div class="body"><p>The fatal flaw in Option A is not the migration — it's the recovery. A maintenance window guarantees
     you a start time, not a finish time. When the new middleware mishandles an edge-case token at 2 a.m.,
     what is the practiced, tested path back? There isn't one; this team has never done a zero-downtime auth
-    swap. Option A bets the company's login on a first attempt being clean. Phase it. The flag is your rollback.</p>
+    swap. Option A bets the company's login on a first attempt being clean. Phase it. The flag is your rollback.</p></div>
   </details>
-  <details style="--c:var(--adv-first-principles)"><summary>The First Principles Thinker — full response</summary>
-    <p>You're asking "fast or slow?" but the actual question is "reversible or irreversible?" Strip the framing:
+  <details style="--c:var(--adv-first-principles)"><summary><span class="chipdot"></span>The First Principles Thinker — full response<span class="wc">78 WORDS</span><span class="tog">[+]</span></summary>
+    <div class="body"><p>You're asking "fast or slow?" but the actual question is "reversible or irreversible?" Strip the framing:
     auth is a dependency of every request, so the only property that matters is the ability to undo a bad change
     in seconds. Build the routing flag first — that converts an irreversible decision into a reversible one.
-    Once the flag exists, the cutover-vs-phased debate mostly dissolves.</p>
+    Once the flag exists, the cutover-vs-phased debate mostly dissolves.</p></div>
   </details>
-  <details style="--c:var(--adv-expansionist)"><summary>The Expansionist — full response</summary>
-    <p>Everyone will tell you to phase. Fine — but price what two quarters of dual-running costs: every feature
+  <details style="--c:var(--adv-expansionist)"><summary><span class="chipdot"></span>The Expansionist — full response<span class="wc">84 WORDS</span><span class="tog">[+]</span></summary>
+    <div class="body"><p>Everyone will tell you to phase. Fine — but price what two quarters of dual-running costs: every feature
     touching auth gets written twice, reviewed twice, and the SSO/enterprise tier you could sell waits half a
     year. A clean cutover in one rehearsed window, with the saved quarter spent shipping SSO, is worth more than
-    the comfort of a long migration. The upside case deserves a seat at this table.</p>
+    the comfort of a long migration. The upside case deserves a seat at this table.</p></div>
   </details>
-  <details style="--c:var(--adv-outsider)"><summary>The Outsider — full response</summary>
-    <p>From outside: why does swapping one middleware take two quarters? That number smells like organizational
+  <details style="--c:var(--adv-outsider)"><summary><span class="chipdot"></span>The Outsider — full response<span class="wc">71 WORDS</span><span class="tog">[+]</span></summary>
+    <div class="body"><p>From outside: why does swapping one middleware take two quarters? That number smells like organizational
     padding, not engineering necessity. Also, "maintenance window" — your customers are global; whose night is
-    it? Phase it if you must, but challenge the timeline hard. A fresh team would scope this at six weeks with a flag.</p>
+    it? Phase it if you must, but challenge the timeline hard. A fresh team would scope this at six weeks with a flag.</p></div>
   </details>
-  <details style="--c:var(--adv-executor)"><summary>The Executor — full response</summary>
-    <p>Monday morning: inventory every call site of the legacy middleware, ranked by traffic. Without that list
+  <details style="--c:var(--adv-executor)"><summary><span class="chipdot"></span>The Executor — full response<span class="wc">88 WORDS</span><span class="tog">[+]</span></summary>
+    <div class="body"><p>Monday morning: inventory every call site of the legacy middleware, ranked by traffic. Without that list
     neither option is real. Then: flag in week 2, lowest-traffic route migrated in week 3, one route class per
     week after. Hard sunset date written down now, with a kill criterion — if error rates rise above the baseline
-    for two consecutive routes, stop and reassess. Phased, but with teeth.</p>
+    for two consecutive routes, stop and reassess. Phased, but with teeth.</p></div>
   </details>
-  <details><summary>Peer review — highlights</summary>
-    <p>Reviewers ranked the Executor's response strongest for converting strategy into a dated, falsifiable plan.
+  <details><summary><span class="chipdot"></span>Peer review — highlights<span class="wc">REVIEW</span><span class="tog">[+]</span></summary>
+    <div class="body"><p>Reviewers ranked the Executor's response strongest for converting strategy into a dated, falsifiable plan.
     The Expansionist's dissent was flagged as the biggest blind spot — it never addresses the team's inexperience,
     which is the premise of the whole question. All five responses initially missed the interaction between the
-    9-month support deadline and the two-quarter plan.</p>
+    9-month support deadline and the two-quarter plan.</p></div>
   </details>
 </section>
 
-<footer class="mono">
-  2026-06-12-0930 · auth-middleware-cutover-vs-phased · template: war-room ·
-  This is a recommendation, not a registered decision. To commit: fire Decision: &lt;X&gt; manually.
+<footer>
+  ⚑ 2026-06-12-0930 · auth-middleware-cutover-vs-phased · template: war-room<br>
+  This is a recommendation, not a registered decision. To commit:
+  <span class="prompt">$</span> <span class="cmd">Decision: &lt;X&gt;</span>
 </footer>
 
+</div>
 </body>
 </html>

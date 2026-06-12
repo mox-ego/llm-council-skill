@@ -68,6 +68,22 @@ every text/surface pairing passes WCAG AA.
   is encouraged.
 - Spacing on a 4px grid.
 
+### Polish floor (what keeps a report from looking flat)
+
+Flat gray cards on a flat dark page fail the bar even if every component is present.
+Every skin must bring:
+
+- **Atmosphere** — the page background is layered (subtle radial glows, a faint grid or
+  texture), never a single flat fill. Keep it quiet enough that text contrast never drops
+  below AA, and strip it in `@media print`.
+- **Depth** — cards get a soft drop shadow plus a 1px inner top highlight; key elements
+  (hero rule, KPI top edge, advisor chips) carry a soft glow in their identity color.
+- **Numerals that read like a scoreboard** — KPI values in mono, 22px+, weight 800, tinted
+  to their semantic color. Stats are the second thing the eye lands on after the hero.
+- **One signature moment** — each skin has a distinctive flourish (war-room: striped
+  dissent segment + ghost section numerals; scoreboard: oversized tallies; terminal:
+  prompt-style footer). One, not five.
+
 ---
 
 ## 2. Components (required in every report)
