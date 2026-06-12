@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Council Report — Auth Middleware Migration</title>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+         background: #ffffff; color: #1f2328; max-width: 760px; margin: 0 auto; padding: 32px 20px; line-height: 1.6; }
+  h1 { font-size: 24px; margin-bottom: 4px; }
+  h2 { font-size: 18px; margin-top: 32px; border-bottom: 1px solid #d8dee4; padding-bottom: 6px; }
+  .meta { color: #656d76; font-size: 13px; margin-bottom: 24px; }
+  .brief { background: #f6f8fa; border: 1px solid #d8dee4; border-radius: 6px; padding: 16px 20px; font-size: 15px; }
+  .brief .label { font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: #656d76; margin-bottom: 8px; }
+  .verdict { border: 1px solid #d8dee4; border-radius: 6px; padding: 16px 20px; margin-top: 16px; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; margin-top: 12px; }
+  th, td { text-align: left; padding: 8px 10px; border: 1px solid #d8dee4; }
+  th { background: #f6f8fa; font-weight: 600; }
+  details { border: 1px solid #d8dee4; border-radius: 6px; padding: 10px 16px; margin-top: 10px; font-size: 15px; }
+  summary { cursor: pointer; font-weight: 600; }
+  .adv-1 { border-left: 4px solid #fadbd8; }
+  .adv-2 { border-left: 4px solid #e8daef; }
+  .adv-3 { border-left: 4px solid #d5f5e3; }
+  .adv-4 { border-left: 4px solid #fdebd0; }
+  .adv-5 { border-left: 4px solid #d6eaf8; }
+  footer { margin-top: 40px; padding-top: 12px; border-top: 1px solid #d8dee4; color: #656d76; font-size: 12px; }
+</style>
+</head>
+<body>
+
+<h1>Council Report</h1>
+<div class="meta">2026-06-12-0930 · auth-middleware-cutover-vs-phased</div>
+
+<div class="brief">
+  <div class="label">What the council saw</div>
+  An engineering lead at a mid-size SaaS company (~40 engineers) must replace a legacy
+  authentication middleware. Option A: single cutover during a scheduled maintenance window
+  next month. Option B: phased migration over two quarters behind a routing flag. Auth touches
+  every request; an outage is customer-visible within minutes. The legacy library loses
+  security support in 9 months. The team has no prior zero-downtime auth migration experience.
+</div>
+
+<h2>Chairman's Verdict</h2>
+<div class="verdict">
+  <p><strong>Where the council agrees:</strong> a big-bang cutover with no practiced rollback
+  path is the single largest risk on the table. Four of five advisors independently rejected
+  Option A as framed. The routing-flag infrastructure required for a phased migration is an
+  asset in itself.</p>
+  <p><strong>Where the council clashes:</strong> speed. The Expansionist argues two quarters of
+  dual-running is an opportunity tax that delays the SSO roadmap; the Outsider questions why a
+  middleware swap needs two quarters at all; the Contrarian and Executor accept the longer
+  timeline as the price of safety.</p>
+  <p><strong>Blind spots the council caught:</strong> no advisor initially priced the 9-month
+  support deadline against the two-quarter plan — the slack is thinner than it looks once
+  freeze periods and holidays are subtracted.</p>
+  <p><strong>Recommendation:</strong> phased migration behind a routing flag, compressed to one
+  quarter, with a hard sunset date six weeks before the support deadline.</p>
+  <p><strong>The one thing to do first:</strong> this week, generate the complete inventory of
+  auth-middleware call sites and rank them by traffic.</p>
+</div>
+
+<h2>Advisor Positions</h2>
+<table>
+  <tr><th>Advisor</th><th>Position</th></tr>
+  <tr><td>The Contrarian</td><td>Phase — cutover's rollback story is the fatal flaw</td></tr>
+  <tr><td>The First Principles Thinker</td><td>Phase — the real question is rollback capability, not speed</td></tr>
+  <tr><td>The Expansionist</td><td>Cutover — two quarters of dual-running is an opportunity tax</td></tr>
+  <tr><td>The Outsider</td><td>Phase, but compressed — two quarters reads like padding</td></tr>
+  <tr><td>The Executor</td><td>Phase — with a hard sunset date and a kill criterion</td></tr>
+</table>
+
+<h2>Full Responses</h2>
+<details class="adv-1"><summary>The Contrarian</summary>
+  <p>The fatal flaw in Option A is not the migration — it's the recovery. A maintenance window
+  guarantees you a start time, not a finish time. When the new middleware mishandles an edge-case
+  token at 2 a.m., what is the practiced, tested path back? There isn't one; this team has never
+  done a zero-downtime auth swap. Option A bets the company's login on a first attempt being
+  clean. Phase it. The flag is your rollback.</p>
+</details>
+<details class="adv-2"><summary>The First Principles Thinker</summary>
+  <p>You're asking "fast or slow?" but the actual question is "reversible or irreversible?"
+  Strip the framing: auth is a dependency of every request, so the only property that matters is
+  the ability to undo a bad change in seconds. Build the routing flag first — that converts an
+  irreversible decision into a reversible one. Once the flag exists, the cutover-vs-phased debate
+  mostly dissolves.</p>
+</details>
+<details class="adv-3"><summary>The Expansionist</summary>
+  <p>Everyone will tell you to phase. Fine — but price what two quarters of dual-running costs:
+  every feature touching auth gets written twice, reviewed twice, and the SSO/enterprise tier
+  you could sell waits half a year. A clean cutover in one rehearsed window, with the saved
+  quarter spent shipping SSO, is worth more than the comfort of a long migration. The upside
+  case deserves a seat at this table.</p>
+</details>
+<details class="adv-4"><summary>The Outsider</summary>
+  <p>From outside: why does swapping one middleware take two quarters? That number smells like
+  organizational padding, not engineering necessity. Also, "maintenance window" — your customers
+  are global; whose night is it? Phase it if you must, but challenge the timeline hard. A fresh
+  team would scope this at six weeks with a flag.</p>
+</details>
+<details class="adv-5"><summary>The Executor</summary>
+  <p>Monday morning: inventory every call site of the legacy middleware, ranked by traffic.
+  Without that list neither option is real. Then: flag in week 2, lowest-traffic route migrated
+  in week 3, one route class per week after. Hard sunset date written down now, with a kill
+  criterion — if error rates rise above the baseline for two consecutive routes, stop and
+  reassess. Phased, but with teeth.</p>
+</details>
+
+<h2>Peer Review Highlights</h2>
+<details><summary>Review highlights</summary>
+  <p>Reviewers ranked the Executor's response strongest for converting strategy into a dated,
+  falsifiable plan. The Expansionist's dissent was flagged as the biggest blind spot — it never
+  addresses the team's inexperience, which is the premise of the whole question. All five
+  responses initially missed the interaction between the 9-month support deadline and the
+  two-quarter plan.</p>
+</details>
+
+<footer>
+  2026-06-12-0930 · auth-middleware-cutover-vs-phased ·
+  This is a recommendation, not a registered decision. To commit: fire <code>Decision: &lt;X&gt;</code> manually.
+</footer>
+
+</body>
+</html>

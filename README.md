@@ -71,6 +71,19 @@ Engagement-scoped runs archive automatically with the engagement (Ritual 2c swee
 
 ---
 
+## Design system
+
+Report templates are **skins** over a shared visual grammar defined in
+[`design-system.md`](design-system.md): fixed advisor identity colors, required components
+(verdict hero, first-step card, vote-split bar, positions grid, semantic verdict sections,
+collapsible transcript), and hard requirements (single self-contained HTML, no external
+requests, AA contrast, print-safe). The manifest in
+`Dashboards and Reports/Council/_templates/` picks the skin; the design system fixes what
+every skin must contain. See [`examples/`](examples/) for a before/after render of the
+same council run under the original upstream style vs the current design system.
+
+---
+
 ## Adding / modifying personas
 
 See the **Adding or modifying personas** section at the end of `SKILL.md`. Short version: edit SKILL.md in three spots (persona description, spawn count, anonymization labels), commit to the fork, test on a low-stakes question.

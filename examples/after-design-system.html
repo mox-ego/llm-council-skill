@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Council Verdict — Auth Middleware Migration</title>
+<style>
+:root {
+  /* skin tokens (war-room template) */
+  --bg: #0e1116;
+  --surface: #161b23;
+  --surface-2: #1d2430;
+  --border: #2a3342;
+  --text: #e6ebf2;
+  --text-muted: #97a3b5;
+  --accent: #f5a623;
+  --accent-contrast: #0e1116;
+  /* advisor identity tokens (fixed across all templates) */
+  --adv-contrarian: #e5484d;
+  --adv-first-principles: #8e4ec6;
+  --adv-expansionist: #30a46c;
+  --adv-outsider: #f5a623;
+  --adv-executor: #0091ff;
+  /* verdict semantics (fixed) */
+  --sem-agree: #30a46c;
+  --sem-clash: #f76808;
+  --sem-blindspot: #8e4ec6;
+}
+* { box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background: var(--bg); color: var(--text);
+  max-width: 880px; margin: 0 auto; padding: 36px 20px; line-height: 1.6; font-size: 15.5px;
+}
+.mono { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
+.kicker { font-size: 12px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-muted); }
+.runmeta { font-size: 12.5px; color: var(--text-muted); margin-top: 4px; }
+
+/* ── verdict hero ───────────────────────────── */
+.hero {
+  margin-top: 20px; background: linear-gradient(135deg, var(--surface) 0%, var(--surface-2) 100%);
+  border: 1px solid var(--border); border-left: 5px solid var(--accent);
+  border-radius: 12px; padding: 26px 28px;
+}
+.hero h1 { font-size: clamp(26px, 4vw, 38px); line-height: 1.2; margin: 8px 0 0; font-weight: 750; }
+.chip {
+  display: inline-block; font-size: 11px; letter-spacing: 1.2px; font-weight: 700;
+  padding: 3px 10px; border-radius: 999px; vertical-align: middle;
+  background: var(--sem-agree); color: #06130c;
+}
+.firststep {
+  margin-top: 18px; display: flex; gap: 14px; align-items: baseline;
+  background: var(--bg); border: 1px dashed var(--accent); border-radius: 8px; padding: 12px 16px;
+}
+.firststep .label { color: var(--accent); font-size: 11px; letter-spacing: 1.5px; font-weight: 700; white-space: nowrap; }
+
+/* ── KPI strip ──────────────────────────────── */
+.kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 14px; }
+.kpi { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; }
+.kpi .k { font-size: 10.5px; letter-spacing: 1.2px; text-transform: uppercase; color: var(--text-muted); }
+.kpi .v { font-size: 21px; font-weight: 750; margin-top: 2px; }
+.kpi .s { font-size: 12px; color: var(--text-muted); }
+
+/* ── vote split ─────────────────────────────── */
+section { margin-top: 34px; }
+h2 { font-size: 19px; margin: 0 0 12px; }
+.votebar { display: flex; height: 26px; border-radius: 8px; overflow: hidden; border: 1px solid var(--border); }
+.votebar div { flex: 1; }
+.legend { display: flex; flex-wrap: wrap; gap: 14px 22px; margin-top: 10px; font-size: 13px; color: var(--text-muted); }
+.dot { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+
+/* ── positions grid ─────────────────────────── */
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; border-top: 3px solid var(--c); }
+.card .name { font-weight: 700; font-size: 14.5px; }
+.card .lens { font-size: 12.5px; color: var(--text-muted); margin: 2px 0 8px; }
+.card .stance { font-size: 13.5px; }
+.card .stance b { color: var(--c); }
+
+/* ── verdict sections ───────────────────────── */
+.vsec { background: var(--surface); border: 1px solid var(--border); border-left: 5px solid var(--c); border-radius: 10px; padding: 16px 20px; margin-top: 12px; }
+.vsec h3 { margin: 0 0 6px; font-size: 15px; color: var(--c); letter-spacing: 0.3px; }
+.vsec p { margin: 0; font-size: 14.5px; }
+
+/* ── brief panel ────────────────────────────── */
+.brief { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; color: var(--text-muted); font-size: 14px; }
+
+/* ── transcript ─────────────────────────────── */
+details { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px 18px; margin-top: 10px; }
+summary { cursor: pointer; font-weight: 650; font-size: 14.5px; list-style: none; display: flex; align-items: center; gap: 10px; }
+summary::before { content: ""; width: 10px; height: 10px; border-radius: 3px; background: var(--c, var(--text-muted)); flex: none; }
+summary::after { content: "+"; margin-left: auto; color: var(--text-muted); }
+details[open] summary::after { content: "–"; }
+details p { font-size: 14px; color: var(--text); }
+
+footer { margin-top: 44px; padding-top: 14px; border-top: 1px solid var(--border); color: var(--text-muted); font-size: 12px; }
+
+@media (max-width: 620px) { .kpis { grid-template-columns: repeat(2, 1fr); } .firststep { flex-direction: column; gap: 4px; } }
+@media print {
+  body { background: #fff; color: #111; }
+  .hero, .kpi, .card, .vsec, .brief, details { background: #fff; border-color: #999; }
+  details { display: block; } details > *:not(summary) { display: block !important; }
+}
+</style>
+</head>
+<body>
+
+<div class="kicker">⚑ Council Verdict — War Room</div>
+<div class="runmeta mono">2026-06-12-0930 · auth-middleware-cutover-vs-phased · template: war-room</div>
+
+<div class="hero">
+  <span class="kicker">The recommendation</span> <span class="chip">STRONG · 4/5</span>
+  <h1>Phase the migration — one quarter, behind a flag, with a hard sunset.</h1>
+  <div class="firststep">
+    <span class="label mono">FIRST STEP →</span>
+    <span>This week, generate the complete inventory of auth-middleware call sites, ranked by traffic.</span>
+  </div>
+</div>
+
+<div class="kpis">
+  <div class="kpi"><div class="k">Confidence</div><div class="v" style="color:var(--sem-agree)">STRONG</div><div class="s">4/5 reviewers aligned</div></div>
+  <div class="kpi"><div class="k">Vote split</div><div class="v">4 – 1</div><div class="s">phase vs cutover</div></div>
+  <div class="kpi"><div class="k">Regret asymmetry</div><div class="v" style="color:var(--sem-clash)">~6×</div><div class="s">cutover-wrong costs more</div></div>
+  <div class="kpi"><div class="k">Reversibility</div><div class="v">FULL</div><div class="s">until flag removal (wk 10)</div></div>
+</div>
+
+<section>
+  <h2>Vote split</h2>
+  <div class="votebar">
+    <div style="background:var(--adv-contrarian)"></div>
+    <div style="background:var(--adv-first-principles)"></div>
+    <div style="background:var(--adv-outsider)"></div>
+    <div style="background:var(--adv-executor)"></div>
+    <div style="background:var(--adv-expansionist); opacity:.45"></div>
+  </div>
+  <div class="legend">
+    <span><span class="dot" style="background:var(--adv-contrarian)"></span>Contrarian · phase</span>
+    <span><span class="dot" style="background:var(--adv-first-principles)"></span>First Principles · phase</span>
+    <span><span class="dot" style="background:var(--adv-outsider)"></span>Outsider · phase (compress)</span>
+    <span><span class="dot" style="background:var(--adv-executor)"></span>Executor · phase</span>
+    <span><span class="dot" style="background:var(--adv-expansionist); opacity:.45"></span>Expansionist · cutover (dissent)</span>
+  </div>
+</section>
+
+<section>
+  <h2>Council positions</h2>
+  <div class="grid">
+    <div class="card" style="--c:var(--adv-contrarian)"><div class="name">The Contrarian</div><div class="lens">What breaks, what's missing</div><div class="stance"><b>Phase.</b> Cutover's rollback story is the fatal flaw.</div></div>
+    <div class="card" style="--c:var(--adv-first-principles)"><div class="name">First Principles</div><div class="lens">What are we actually solving?</div><div class="stance"><b>Phase.</b> The real question is reversibility, not speed.</div></div>
+    <div class="card" style="--c:var(--adv-expansionist)"><div class="name">The Expansionist</div><div class="lens">The upside nobody priced</div><div class="stance"><b>Cutover.</b> Dual-running is an opportunity tax on the SSO roadmap.</div></div>
+    <div class="card" style="--c:var(--adv-outsider)"><div class="name">The Outsider</div><div class="lens">Fresh eyes, zero context</div><div class="stance"><b>Phase, compressed.</b> Two quarters reads like padding.</div></div>
+    <div class="card" style="--c:var(--adv-executor)"><div class="name">The Executor</div><div class="lens">What happens Monday morning</div><div class="stance"><b>Phase.</b> With a sunset date and a kill criterion.</div></div>
+  </div>
+</section>
+
+<section>
+  <h2>The verdict</h2>
+  <div class="vsec" style="--c:var(--sem-agree)">
+    <h3>WHERE THE COUNCIL AGREES</h3>
+    <p>A big-bang cutover with no practiced rollback path is the largest risk on the table — four of five advisors rejected Option A as framed. The routing-flag infrastructure required to phase is an asset in itself, not overhead.</p>
+  </div>
+  <div class="vsec" style="--c:var(--sem-clash)">
+    <h3>WHERE THE COUNCIL CLASHES</h3>
+    <p>Speed. The Expansionist prices two quarters of dual-running as a delayed SSO roadmap; the Outsider questions whether a middleware swap needs two quarters at all; the Contrarian and Executor accept the longer timeline as the cost of safety. The clash resolved into the compressed-quarter compromise.</p>
+  </div>
+  <div class="vsec" style="--c:var(--sem-blindspot)">
+    <h3>BLIND SPOTS THE COUNCIL CAUGHT</h3>
+    <p>No advisor initially priced the 9-month support deadline against the two-quarter plan — subtract freeze periods and holidays and the slack is far thinner than it looks. Surfaced only in peer review; it drove the compression and the sunset date.</p>
+  </div>
+</section>
+
+<section>
+  <h2>What the council saw</h2>
+  <div class="brief">
+    An engineering lead at a mid-size SaaS company (~40 engineers) must replace a legacy authentication
+    middleware. Option A: single cutover during a scheduled maintenance window next month. Option B:
+    phased migration over two quarters behind a routing flag. Auth touches every request; an outage is
+    customer-visible within minutes. The legacy library loses security support in 9 months. The team has
+    no prior zero-downtime auth migration experience.
+  </div>
+</section>
+
+<section>
+  <h2>Transcript</h2>
+  <details style="--c:var(--adv-contrarian)"><summary>The Contrarian — full response</summary>
+    <p>The fatal flaw in Option A is not the migration — it's the recovery. A maintenance window guarantees
+    you a start time, not a finish time. When the new middleware mishandles an edge-case token at 2 a.m.,
+    what is the practiced, tested path back? There isn't one; this team has never done a zero-downtime auth
+    swap. Option A bets the company's login on a first attempt being clean. Phase it. The flag is your rollback.</p>
+  </details>
+  <details style="--c:var(--adv-first-principles)"><summary>The First Principles Thinker — full response</summary>
+    <p>You're asking "fast or slow?" but the actual question is "reversible or irreversible?" Strip the framing:
+    auth is a dependency of every request, so the only property that matters is the ability to undo a bad change
+    in seconds. Build the routing flag first — that converts an irreversible decision into a reversible one.
+    Once the flag exists, the cutover-vs-phased debate mostly dissolves.</p>
+  </details>
+  <details style="--c:var(--adv-expansionist)"><summary>The Expansionist — full response</summary>
+    <p>Everyone will tell you to phase. Fine — but price what two quarters of dual-running costs: every feature
+    touching auth gets written twice, reviewed twice, and the SSO/enterprise tier you could sell waits half a
+    year. A clean cutover in one rehearsed window, with the saved quarter spent shipping SSO, is worth more than
+    the comfort of a long migration. The upside case deserves a seat at this table.</p>
+  </details>
+  <details style="--c:var(--adv-outsider)"><summary>The Outsider — full response</summary>
+    <p>From outside: why does swapping one middleware take two quarters? That number smells like organizational
+    padding, not engineering necessity. Also, "maintenance window" — your customers are global; whose night is
+    it? Phase it if you must, but challenge the timeline hard. A fresh team would scope this at six weeks with a flag.</p>
+  </details>
+  <details style="--c:var(--adv-executor)"><summary>The Executor — full response</summary>
+    <p>Monday morning: inventory every call site of the legacy middleware, ranked by traffic. Without that list
+    neither option is real. Then: flag in week 2, lowest-traffic route migrated in week 3, one route class per
+    week after. Hard sunset date written down now, with a kill criterion — if error rates rise above the baseline
+    for two consecutive routes, stop and reassess. Phased, but with teeth.</p>
+  </details>
+  <details><summary>Peer review — highlights</summary>
+    <p>Reviewers ranked the Executor's response strongest for converting strategy into a dated, falsifiable plan.
+    The Expansionist's dissent was flagged as the biggest blind spot — it never addresses the team's inexperience,
+    which is the premise of the whole question. All five responses initially missed the interaction between the
+    9-month support deadline and the two-quarter plan.</p>
+  </details>
+</section>
+
+<footer class="mono">
+  2026-06-12-0930 · auth-middleware-cutover-vs-phased · template: war-room ·
+  This is a recommendation, not a registered decision. To commit: fire Decision: &lt;X&gt; manually.
+</footer>
+
+</body>
+</html>

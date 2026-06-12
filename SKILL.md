@@ -113,6 +113,8 @@ The manifest is the single source of truth for:
 
 **Why this matters:** templates can be added, renamed, swapped, or visually retuned without touching this skill file. The skill's job is to (1) read the manifest, (2) match the user's invocation to a template, (3) render in that template's style. The catalog evolves; the skill stays put.
 
+Templates are **skins** over a shared visual grammar. The grammar — fixed advisor identity colors, required components, hard output requirements — is versioned with the skill in `design-system.md`. The manifest picks the skin; the design system fixes what every skin must contain.
+
 **Read the manifest at the start of every run.** Never assume a cached version. Templates change.
 
 ---
@@ -432,6 +434,8 @@ Keep your output tight. No preamble. No fluff. Just the structured analysis.
 **Read the chosen template's HTML file** (path = `<Claude Space>/Dashboards and Reports/Council/_templates/<file>` from manifest) to mirror its visual style — colors, typography, layout, component patterns. Then write a fresh `council-report.html` inside the run folder using that style.
 
 **Do NOT copy the template verbatim and find-replace.** LLMs slip on token-by-token templating. Instead: read the template as a *style reference*, internalize its visual grammar, then re-render for THIS council's data.
+
+**Design-system compliance (non-negotiable, applies to every template):** the report must satisfy `design-system.md` (sibling of this file) — a single self-contained HTML file with inline CSS and zero external requests, fixed advisor identity colors, the required component set (verdict hero, first-step card, vote split bar, positions grid, color-coded verdict sections, framed-brief panel, native `<details>` transcript, footer), AA contrast, 360px responsiveness, and print safety. Templates re-skin the token layer; they never restructure the component contract. If a template file conflicts with `design-system.md`, the design system wins.
 
 Every report contains (at minimum):
 1. The framed brief (clearly labeled "What the council saw")
