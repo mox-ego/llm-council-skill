@@ -1,6 +1,7 @@
 ---
 name: llm-council
-description: "Run any high-stakes decision through an isolated council of 5 AI advisors who independently analyze it, peer-review each other anonymously, and synthesize a final verdict. Based on Karpathy's LLM Council methodology. ISOLATED COUNSEL — advisors never read user memory, vault, CLAUDE.md, or personal context files; they reason only from a de-personalized brief. STANDARD TRIGGERS: 'council this', 'run the council', 'war room this', 'pressure-test this', 'stress-test this', 'debate this'. CRITICAL MODE TRIGGER (extended-analysis pass with 8 extra agents — risk asymmetry, reversibility ladder, info gap registry, time decay, pre-mortem, trip-wires, counterfactual, stakeholder impact): 'critical council this', 'deep council this'. STYLE OVERRIDE — append a template hint like 'in bento style', 'as scoreboard', 'in terminal', 'as comic'; the skill reads `Dashboards and Reports/Council/_templates/manifest.json` to map the hint to a template file. STRONG TRIGGERS (when combined with a real decision or tradeoff): 'should I X or Y', 'which option', 'what would you do', 'is this the right move', 'validate this', 'get multiple perspectives', 'I can't decide', 'I'm torn between'. Do NOT trigger on simple yes/no questions, factual lookups, or casual 'should I' without a meaningful tradeoff."
+description: "Run any high-stakes decision through an isolated council of 5 AI advisors who independently analyze it, peer-review each other anonymously, and synthesize a final verdict. Based on Karpathy's LLM Council methodology. ISOLATED COUNSEL — advisors never read user memory, vault, CLAUDE.md, or personal context files; they reason only from a de-personalized brief. STANDARD TRIGGERS: 'council this', 'run the council', 'war room this', 'pressure-test this', 'stress-test this', 'debate this'. CRITICAL MODE TRIGGER (extended-analysis pass with 8 extra agents — risk asymmetry, reversibility ladder, info gap registry, time decay, pre-mortem, trip-wires, counterfactual, stakeholder impact): 'critical council this', 'deep council this'. STYLE OVERRIDE — append a template hint like 'in bento style', 'as scoreboard', 'in terminal', 'as comic'; the skill reads `Reports/Council/_templates/manifest.json` to map the hint to a template file. STRONG TRIGGERS (when combined with a real decision or tradeoff): 'should I X or Y', 'which option', 'what would you do', 'is this the right move', 'validate this', 'get multiple perspectives', 'I can't decide', 'I'm torn between'. Do NOT trigger on simple yes/no questions, factual lookups, or casual 'should I' without a meaningful tradeoff."
+tier: hot
 ---
 
 # LLM Council — Moe's Fork
@@ -10,7 +11,7 @@ Five independent advisors, each reasoning from a different angle, peer-reviewing
 This fork diverges from the upstream in three deliberate ways:
 
 1. **Hard isolation** — advisors never read user memory, vault, CLAUDE.md, or personal context files. They see a de-personalized brief only. The council exists to challenge Moe's thinking, not to confirm his preferences.
-2. **Output routing** — outputs land next to the work that prompted them (engagement → area → `Dashboards and Reports/`). Never dumped at the current working directory or inside the skill folder.
+2. **Output routing** — outputs land next to the work that prompted them (engagement → area → `Reports/`). Never dumped at the current working directory or inside the skill folder.
 3. **No automatic decision-log promotion** — the Chairman's verdict is a recommendation, not a commitment. Promotion to the vault `05_Decisions/` log happens only when Moe manually fires `"Decision: X"` later.
 
 ---
@@ -69,15 +70,18 @@ Priority 2 — Inside a known area, no engagement:
 
 Priority 3 — Cross-cutting fallback:
   Otherwise (root of Claude Space, unknown folder, or outside any area)
-  → write to <Claude Space>/Dashboards and Reports/Council/YYYY-MM-DD-HHMM-<slug>/
+  → write to <Claude Space>/Reports/Council/YYYY-MM-DD-HHMM-<slug>/
 ```
 
 **Known areas** (match these as path prefixes):
 - `SMC Transformation/`
 - `Health/`
 - `Family/`
-- `Business Startup/`
+- `Business/`
 - `Personality Hacking/`
+- `Hobbies/`
+- `Leadership/`
+- `Learning/`
 
 **Absolute prohibitions:**
 - ❌ Never write to `Obsidian Space/` or any vault path.
@@ -85,7 +89,7 @@ Priority 3 — Cross-cutting fallback:
 - ❌ Never write to the Claude Space root directly.
 - ❌ Never create or update any file under `Obsidian Space/05_Decisions/` — the Chairman's verdict is a recommendation, not a registered decision.
 
-If the destination folder does not exist, create it. If Priority 3 fires and `Dashboards and Reports/Council/` is missing, fail loudly — do not fall back further.
+If the destination folder does not exist, create it. If Priority 3 fires and `Reports/Council/` is missing, fail loudly — do not fall back further.
 
 ### Rule 4 — Slug & timestamp
 
@@ -101,7 +105,7 @@ The Chairman's verdict ends with a single definitive recommendation + one concre
 Report rendering style is NOT hardcoded in this file. It lives in:
 
 ```
-<Claude Space>/Dashboards and Reports/Council/_templates/manifest.json
+<Claude Space>/Reports/Council/_templates/manifest.json
 ```
 
 The manifest is the single source of truth for:
@@ -135,6 +139,14 @@ The council is for questions where being wrong is expensive.
 - "Should I use markdown or rich text?" (trivial, no stakes)
 
 The council tells you things you don't want to hear. That's the feature.
+
+### Tier 0 — decision-helper first for low/medium stakes
+
+Before convening the council, ask: is this decision **reversible within ~1 week** at low cost (a config tweak, a tooling pick, a draft route, a "try it Tuesday and switch back Friday" experiment)? If yes, fire `anthropic-skills:decision-helper` first. It's a single-agent structured-frame pass (criteria → options → recommendation) that costs a fraction of a full council run and is usually sufficient for tactical / reversible calls.
+
+**Escalate from decision-helper to council** if any of the following surface during its run: (a) the recommendation is ambiguous or hedged, (b) the decision-helper itself flags high-stakes signals (irreversibility, cross-domain entanglement, stakeholder/legal/reputational risk), (c) the option space is wider than 3 and the criteria scoring is close, (d) Moe explicitly upgrades ("council this anyway").
+
+Strategic / irreversible / multi-year / public / regulated decisions skip Tier 0 and go straight to council. Examples that bypass decision-helper: career moves, family commitments with multi-year reach, public commitments under the SMC mast, regulated-domain pivots, anything where the wrong call cannot be unwound in one work-week.
 
 ---
 
@@ -223,7 +235,9 @@ Save the brief as `FRAME.md` in the run folder, alongside the `CONTEXT.md` writt
 
 ### Step 2 — Convene the council (5 sub-agents in parallel)
 
-Spawn all 5 advisors simultaneously as sub-agents in a single message. Each gets:
+> Model pins per efficient-fable roster (2026-06-12): advisors/chairman opus, reviewers sonnet — bare spawns inherit the session model at full rate.
+
+Spawn all 5 advisors simultaneously as sub-agents in a single message with `model: "opus"`. Each gets:
 
 1. Their advisor identity and thinking style (from the descriptions above)
 2. The framed brief (from `FRAME.md`)
@@ -260,7 +274,7 @@ Keep your response between 150 and 300 words. No preamble. Go straight into the 
 
 Collect all 5 advisor responses. Anonymize them as Response A through E (randomize the mapping to avoid positional bias).
 
-Spawn 5 new sub-agents in parallel, one per reviewer. Each sees all 5 anonymized responses and answers three questions:
+Spawn 5 new sub-agents in parallel with `model: "sonnet"`, one per reviewer. Each sees all 5 anonymized responses and answers three questions:
 
 1. Which response is the strongest and why? (pick one)
 2. Which response has the biggest blind spot and what is it?
@@ -305,7 +319,7 @@ Keep your review under 200 words. Be direct.
 
 ### Step 4 — Chairman synthesis
 
-One agent gets everything: the framed brief, all 5 advisor responses (now de-anonymized), and all 5 peer reviews. The Chairman produces the final council output using this exact structure:
+One agent (`model: "opus"`) gets everything: the framed brief, all 5 advisor responses (now de-anonymized), and all 5 peer reviews. The Chairman produces the final council output using this exact structure:
 
 **COUNCIL VERDICT**
 
@@ -367,11 +381,19 @@ Produce the council verdict using this exact structure:
 Be direct. Don't hedge. Your job is to give the decision-maker clarity they couldn't get from a single perspective.
 ```
 
+### Step 4a.1 — Optional humanizer pass on the synthesis (EN, long briefs only)
+
+After Chairman synthesis, run the synthesis text through `anthropic-skills:humanizer` if AND ONLY IF both conditions hold: (i) the rendered brief is **> 200 words**, AND (ii) the audience is **English**. Below 200 words, the humanizer's pattern-removal pass tends to over-edit and flatten signal; above 200 words, the synthesis often picks up AI-tells (rule-of-three rhythms, vague attributions, em-dash overuse) worth scrubbing.
+
+**Hard isolation rule:** the humanizer pass runs ONLY on the Chairman's final synthesis text. Advisors' raw responses and peer reviews stay isolated and un-humanized — their reasoning is the input record and must not be rewritten. The humanizer is a finishing-pass on the surfaced verdict only.
+
+Arabic synthesis is out of scope for the humanizer (it's English-tuned). For Arabic deliverables of council verdicts, route through `arabic-style` per its tier protocol.
+
 ### Step 4b — Template selection (read manifest, match trigger)
 
 Before rendering, choose which template to render to.
 
-1. **Read the manifest:** `<Claude Space>/Dashboards and Reports/Council/_templates/manifest.json`.
+1. **Read the manifest:** `<Claude Space>/Reports/Council/_templates/manifest.json`.
 2. **Extract the trigger phrase from the user's invocation.** Look for style hints in the original question (after "council this," before the colon, or in inline phrases like "in bento style" / "as scoreboard" / "war room"). If no style hint is present, use `manifest.default`.
 3. **Match the trigger.** For each template in `manifest.templates`, check if any of its `triggers` substrings appear in the user's invocation (case-insensitive, longest-match wins). If multiple templates tie, prefer rank order: `primary` > `secondary` > `custom` > `critical` > `alternate`.
 4. **If no match,** use `manifest.fallback_when_no_match`.
@@ -383,7 +405,7 @@ Standard runs go straight to Step 5. Extended runs do this first.
 
 When the chosen template's `render_mode` is `extended-analysis`, spawn additional analysis sub-agents in parallel **after** Step 4 (Chairman synthesis) and **before** Step 5 (rendering). Each agent observes the same isolation rules and gets the framed brief + Chairman's verdict as input.
 
-**The 8 extended-analysis agents** (parallel, single message, all spawned at once):
+**The 8 extended-analysis agents** (parallel, single message, all spawned at once; use `model: "sonnet"` for each):
 
 | # | Agent | Output goes to template slot | Output spec |
 |---|---|---|---|
@@ -429,7 +451,7 @@ Keep your output tight. No preamble. No fluff. Just the structured analysis.
 
 ### Step 5 — Generate the council report (HTML)
 
-**Read the chosen template's HTML file** (path = `<Claude Space>/Dashboards and Reports/Council/_templates/<file>` from manifest) to mirror its visual style — colors, typography, layout, component patterns. Then write a fresh `council-report.html` inside the run folder using that style.
+**Read the chosen template's HTML file** (path = `<Claude Space>/Reports/Council/_templates/<file>` from manifest) to mirror its visual style — colors, typography, layout, component patterns. Then write a fresh `council-report.html` inside the run folder using that style.
 
 **Do NOT copy the template verbatim and find-replace.** LLMs slip on token-by-token templating. Instead: read the template as a *style reference*, internalize its visual grammar, then re-render for THIS council's data.
 
@@ -519,6 +541,20 @@ The skill is Moe's fork — he owns it. To add, remove, or swap personas:
 4. **Future upgrade (not day-one):** a library of 15+ personas, with the skill dynamically picking 5–7 based on detected domain. Worth it once you've run ~20 councils and feel the fixed roster repeating itself. Seed it as a plant-seed when the pattern appears.
 
 **Test your change** with a low-stakes question before running it on something real. If a persona produces generic or repetitive output in testing, tune the description or remove it.
+
+---
+
+## Personas
+
+The standard 5-advisor roster (Contrarian / First Principles / Expansionist / Outsider / Executor) above is the council's general-purpose lineup — domain-agnostic, optimised for tension manufacturing.
+
+**Domain-specific persona libraries** can be loaded by other skills WITHOUT modifying this council. The first such library shipped 2026-05-10 for SMC commercial policy work:
+
+- **`policy-personas` skill** — 5 SME critique lenses (Saudi Legal Counsel, IFRS-15 External Auditor, Commercial Director, Internal Auditor, Customer/Corporate Sponsor). Lives at `~/.claude/skills/policy-personas/personas/`. Loaded by `/policy-builder` (Step 4) and `/policy-reviewer` (Step 4) — orthogonal to this council, not a replacement.
+
+When other domain libraries appear (motorsport sporting, ops, marketing/CSR), they follow the same pattern: NEW additive skill at `~/.claude/skills/<domain>-personas/personas/`, loaded by domain orchestrators. This council remains untouched as the cross-domain tension-manufacturer.
+
+If you ever want to run THIS council's standard 5-advisor protocol against a domain-specific brief, that's a parallel pass — not a substitution.
 
 ---
 
